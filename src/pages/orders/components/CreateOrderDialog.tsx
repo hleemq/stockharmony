@@ -58,12 +58,14 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
   const onSubmit = (data: CustomerFormValues) => {
     const orderNumber = generateOrderNumber();
-    const order = generateOrderPDF({
+    const customerDetails = {
       name: data.name,
-      email: data.email || '',
-      phone: data.phone || '',
-      address: data.address || ''
-    }, selectedProducts, orderNumber);
+      email: data.email || "",
+      phone: data.phone || "",
+      address: data.address || ""
+    };
+    
+    const order = generateOrderPDF(customerDetails, selectedProducts, orderNumber);
     
     if (typeof window !== 'undefined' && (window as any).addOrderToTable) {
       (window as any).addOrderToTable(order);
