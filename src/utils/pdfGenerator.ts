@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { StockItem } from '@/types/stock';
+import { Order, OrderItem } from '@/types/order';
 
 interface CustomerDetails {
   name: string;
@@ -14,8 +15,21 @@ interface OrderProduct extends StockItem {
   applyDiscount: boolean;
 }
 
-export const generateOrderPDF = (customerDetails: CustomerDetails, products: OrderProduct[]) => {
+export const generateOrderNumber = () => {
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  return `ORD-${year}${month}-${random}`;
+};
+
+export const generateOrderPDF = (
+  customerDetails: CustomerDetails, 
+  products: OrderProduct[],
+  orderNumber: string
+): Order => {
   const doc = new jsPDF();
+  const orderDate = new Date().toISOString();
   
   // Set document properties
   doc.setProperties({
@@ -29,13 +43,17 @@ export const generateOrderPDF = (customerDetails: CustomerDetails, products: Ord
   doc.setFont('helvetica', 'bold');
   doc.text('ORDER FORM', doc.internal.pageSize.width / 2, 20, { align: 'center' });
 
-  // Customer Details
+  // Order Number
   doc.setFontSize(12);
+  doc.text(`Order Number: ${orderNumber}`, 15, 30);
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 15, 37);
+
+  // Customer Details
   doc.setFont('helvetica', 'normal');
-  doc.text(`Customer Name: ${customerDetails.name}`, 15, 35);
-  doc.text(`Address: ${customerDetails.address || 'N/A'}`, 15, 42);
-  doc.text(`Phone: ${customerDetails.phone || 'N/A'}`, 15, 49);
-  doc.text(`Email: ${customerDetails.email || 'N/A'}`, 15, 56);
+  doc.text(`Customer Name: ${customerDetails.name}`, 15, 47);
+  doc.text(`Address: ${customerDetails.address || 'N/A'}`, 15, 54);
+  doc.text(`Phone: ${customerDetails.phone || 'N/A'}`, 15, 61);
+  doc.text(`Email: ${customerDetails.email || 'N/A'}`, 15, 68);
 
   // Calculate table data
   const tableData = products.map(product => {
@@ -81,7 +99,7 @@ export const generateOrderPDF = (customerDetails: CustomerDetails, products: Ord
       { content: 'Total Amount:', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold' } },
       { content: `$${total.toFixed(2)}`, styles: { fontStyle: 'bold' } }
     ]],
-    startY: 65,
+    startY: 75,
     margin: { left: 15, right: 15 },
     headStyles: { fillColor: [51, 51, 51], fontSize: 12, fontStyle: 'bold' },
     bodyStyles: { fontSize: 10 },
@@ -94,6 +112,25 @@ export const generateOrderPDF = (customerDetails: CustomerDetails, products: Ord
   doc.setFontSize(12);
   doc.text('ENJOY OUR PRODUCTS...', doc.internal.pageSize.width / 2, pageHeight - 20, { align: 'center' });
 
-  // Save the PDF
-  doc.save('order-form.pdf');
+  // Save the PDF with order number in filename
+  doc.save(`${orderNumber}.pdf`);
+
+  // Create and return order object
+  const orderItems: OrderItem[] = products.map(product => ({
+    id: product.stockCode,
+    productName: product.productName,
+    quantity: product.orderQuantity,
+    price: product.sellingPrice,
+    total: product.sellingPrice * product.orderQuantity * (1 - (product.applyDiscount ? parseFloat(product.discount) / 100 : 0))
+  }));
+
+  return {
+    id: orderNumber,
+    orderNumber,
+    customerName: customerDetails.name,
+    orderDate,
+    status: 'pending',
+    items: orderItems,
+    totalAmount: total
+  };
 };

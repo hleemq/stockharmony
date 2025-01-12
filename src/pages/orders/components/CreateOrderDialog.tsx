@@ -11,6 +11,7 @@ import { StockItem } from "@/types/stock";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { generateOrderNumber, generateOrderPDF } from "@/utils/pdfGenerator";
 
 const customerFormSchema = z.object({
   name: z.string().min(1, "Customer name is required"),
@@ -56,8 +57,19 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
   };
 
   const onSubmit = (data: CustomerFormValues) => {
-    console.log("Customer Data:", data);
-    console.log("Order Products:", selectedProducts);
+    const orderNumber = generateOrderNumber();
+    const order = generateOrderPDF({
+      name: data.name || '',
+      email: data.email || '',
+      phone: data.phone || '',
+      address: data.address || ''
+    }, selectedProducts, orderNumber);
+    
+    // Add the order to the table
+    if (typeof window !== 'undefined' && (window as any).addOrderToTable) {
+      (window as any).addOrderToTable(order);
+    }
+    
     onClose();
   };
 
