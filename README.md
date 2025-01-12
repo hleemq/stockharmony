@@ -1,69 +1,53 @@
-# Welcome to your Lovable project
+# Order Management System
 
-## Project info
+A modern web application for managing orders, customers, and inventory built with React, TypeScript, and Shadcn UI.
 
-**URL**: https://lovable.dev/projects/ffdee321-050b-4e36-933f-5a4901829cbd
+## Features
 
-## How can I edit this code?
+- Create and manage orders with detailed customer information
+- Track inventory and stock levels
+- Generate PDF order documents
+- Responsive design for desktop and mobile use
+- Real-time order status updates
 
-There are several ways of editing your application.
+## Quick Start
 
-**Use Lovable**
+1. **Clone the repository**
+```bash
+git clone <your-repo-url>
+cd order-management-system
+```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ffdee321-050b-4e36-933f-5a4901829cbd) and start prompting.
+2. **Install dependencies**
+```bash
+npm install
+```
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. **Start the development server**
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Documentation
 
-**Use GitHub Codespaces**
+For detailed documentation, please see:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- [Installation Guide](docs/installation.md)
+- [User Guide](docs/user-guide.md)
+- [Developer Guide](docs/developer-guide.md)
+- [API Documentation](docs/api.md)
+- [Examples](docs/examples/)
 
-## What technologies are used for this project?
+## Contributing
 
-This project is built with .
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## License
 
-## How can I deploy this project?
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Simply open [Lovable](https://lovable.dev/projects/ffdee321-050b-4e36-933f-5a4901829cbd) and click on Share -> Publish.
+## Support
 
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+If you encounter any issues or have questions, please [open an issue](https://github.com/yourusername/order-management-system/issues).
