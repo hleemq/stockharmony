@@ -2,13 +2,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { FileText, Trash2 } from "lucide-react";
 import { StockItem } from "@/types/stock";
+import { generateOrderPDF } from "@/utils/pdfGenerator";
 
 interface OrderSummaryProps {
   products: (StockItem & { orderQuantity: number; applyDiscount: boolean })[];
   onRemoveProduct: (stockCode: string) => void;
+  customerDetails: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
 }
 
-export default function OrderSummary({ products, onRemoveProduct }: OrderSummaryProps) {
+export default function OrderSummary({ products, onRemoveProduct, customerDetails }: OrderSummaryProps) {
   const calculateTotal = () => {
     return products.reduce((total, product) => {
       const price = product.sellingPrice * product.orderQuantity;
@@ -17,11 +24,15 @@ export default function OrderSummary({ products, onRemoveProduct }: OrderSummary
     }, 0);
   };
 
+  const handleExportOrder = () => {
+    generateOrderPDF(customerDetails, products);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Order Summary</h3>
-        <Button>
+        <Button onClick={handleExportOrder}>
           <FileText className="mr-2 h-4 w-4" />
           Export Order
         </Button>
