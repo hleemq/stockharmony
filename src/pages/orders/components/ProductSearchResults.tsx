@@ -3,7 +3,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StockItem } from "@/types/stock";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface ProductSearchResultsProps {
   searchQuery: string;
@@ -34,101 +33,77 @@ export default function ProductSearchResults({
   onAddToOrder,
   selectedProducts
 }: ProductSearchResultsProps) {
-  const [selectedProduct, setSelectedProduct] = useState<StockItem | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [showQuantityDialog, setShowQuantityDialog] = useState(false);
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
 
   const filteredProducts = mockProducts.filter(product =>
     product.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.stockCode.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleQuantityChange = (stockCode: string, value: string) => {
+    const quantity = parseInt(value) || 0;
+    setQuantities({ ...quantities, [stockCode]: quantity });
+  };
+
   const handleSelect = (product: StockItem) => {
-    setSelectedProduct(product);
-    setShowQuantityDialog(true);
-  };
-
-  const handleAddToOrder = () => {
-    if (selectedProduct && quantity > 0) {
-      onAddToOrder(selectedProduct, quantity);
-      setShowQuantityDialog(false);
-      setSelectedProduct(null);
-      setQuantity(1);
-    }
-  };
-
-  // Prevent quantity dialog from closing when clicking outside
-  const handleQuantityDialogOpenChange = (open: boolean) => {
-    if (!open) {
-      setShowQuantityDialog(false);
-      setSelectedProduct(null);
-      setQuantity(1);
+    const quantity = quantities[product.stockCode] || 0;
+    if (quantity > 0 && quantity <= product.stockAvailable) {
+      onAddToOrder(product, quantity);
+      setQuantities({ ...quantities, [product.stockCode]: 0 });
     }
   };
 
   return (
-    <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Select</TableHead>
-              <TableHead>Product Name</TableHead>
-              <TableHead>Stock Code</TableHead>
-              <TableHead>Available Quantity</TableHead>
-              <TableHead>Selling Price</TableHead>
-              <TableHead>Discount</TableHead>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Product Name</TableHead>
+            <TableHead>Stock Code</TableHead>
+            <TableHead>Available Quantity</TableHead>
+            <TableHead>Order Quantity</TableHead>
+            <TableHead>Selling Price</TableHead>
+            <TableHead>Discount</TableHead>
+            <TableHead>Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredProducts.map((product) => (
+            <TableRow key={product.stockCode}>
+              <TableCell>{product.productName}</TableCell>
+              <TableCell>{product.stockCode}</TableCell>
+              <TableCell>{product.stockAvailable}</TableCell>
+              <TableCell className="w-32">
+                <Input
+                  type="number"
+                  min="1"
+                  max={product.stockAvailable}
+                  value={quantities[product.stockCode] || ""}
+                  onChange={(e) => handleQuantityChange(product.stockCode, e.target.value)}
+                  disabled={selectedProducts.some(p => p.stockCode === product.stockCode)}
+                />
+              </TableCell>
+              <TableCell>${product.sellingPrice}</TableCell>
+              <TableCell>{product.discount}</TableCell>
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSelect(product)}
+                  disabled={
+                    selectedProducts.some(p => p.stockCode === product.stockCode) ||
+                    !quantities[product.stockCode] ||
+                    quantities[product.stockCode] <= 0 ||
+                    quantities[product.stockCode] > product.stockAvailable
+                  }
+                >
+                  Select
+                </Button>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredProducts.map((product) => (
-              <TableRow key={product.stockCode}>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSelect(product)}
-                    disabled={selectedProducts.some(p => p.stockCode === product.stockCode)}
-                  >
-                    Select
-                  </Button>
-                </TableCell>
-                <TableCell>{product.productName}</TableCell>
-                <TableCell>{product.stockCode}</TableCell>
-                <TableCell>{product.stockAvailable}</TableCell>
-                <TableCell>${product.sellingPrice}</TableCell>
-                <TableCell>{product.discount}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <Dialog open={showQuantityDialog} onOpenChange={handleQuantityDialogOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enter Order Details</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Quantity</label>
-              <Input
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                min={1}
-                max={selectedProduct?.stockAvailable}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuantityDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddToOrder}>Add to Order</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
