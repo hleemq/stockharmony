@@ -57,14 +57,15 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
   };
 
   const onSubmit = (data: CustomerFormValues) => {
-    const orderNumber = generateOrderNumber();
+    // Ensure all required fields are provided with fallbacks for optional fields
     const customerDetails = {
-      name: data.name,
-      email: data.email || "",
+      name: data.name, // This is required by the schema
+      email: data.email || "", // Provide empty string fallback for optional fields
       phone: data.phone || "",
       address: data.address || ""
     };
     
+    const orderNumber = generateOrderNumber();
     const order = generateOrderPDF(customerDetails, selectedProducts, orderNumber);
     
     if (typeof window !== 'undefined' && (window as any).addOrderToTable) {
