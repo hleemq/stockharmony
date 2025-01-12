@@ -172,7 +172,12 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
                 <OrderSummary
                   products={selectedProducts}
                   onRemoveProduct={handleRemoveFromOrder}
-                  customerDetails={form.getValues()}
+                  customerDetails={{
+                    name: form.getValues().name,
+                    email: form.getValues().email || "",
+                    phone: form.getValues().phone || "",
+                    address: form.getValues().address || ""
+                  }}
                 />
               )}
 
