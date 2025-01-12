@@ -31,7 +31,7 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<(StockItem & { 
     orderQuantity: number;
-    applyDiscount: boolean;
+    discountPercentage: number;
   })[]>([]);
 
   const form = useForm<CustomerFormValues>({
@@ -44,11 +44,11 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
     }
   });
 
-  const handleAddToOrder = (product: StockItem, quantity: number, applyDiscount: boolean) => {
+  const handleAddToOrder = (product: StockItem, quantity: number, discountPercentage: number) => {
     setSelectedProducts([...selectedProducts, { 
       ...product, 
       orderQuantity: quantity,
-      applyDiscount 
+      discountPercentage 
     }]);
   };
 
@@ -57,10 +57,9 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
   };
 
   const onSubmit = (data: CustomerFormValues) => {
-    // Ensure all required fields are provided with fallbacks for optional fields
     const customerDetails = {
-      name: data.name, // This is required by the schema
-      email: data.email || "", // Provide empty string fallback for optional fields
+      name: data.name,
+      email: data.email || "",
       phone: data.phone || "",
       address: data.address || ""
     };

@@ -7,7 +7,6 @@ export interface StockItem {
   boughtPrice: number;
   initialPrice: number;
   sellingPrice: number;
-  discount: string;
   location: string;
   imageUrl?: string;
   stockAvailable: number;

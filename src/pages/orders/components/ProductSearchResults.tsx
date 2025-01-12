@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Toggle } from "@/components/ui/toggle";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StockItem } from "@/types/stock";
 
 interface ProductSearchResultsProps {
   searchQuery: string;
-  onAddToOrder: (product: StockItem, quantity: number, applyDiscount: boolean) => void;
-  selectedProducts: (StockItem & { orderQuantity: number; applyDiscount: boolean })[];
+  onAddToOrder: (product: StockItem, quantity: number, discountPercentage: number) => void;
+  selectedProducts: (StockItem & { orderQuantity: number; discountPercentage: number })[];
 }
 
 // Mock data - replace with actual data fetching
@@ -22,11 +22,18 @@ const mockProducts: StockItem[] = [
     boughtPrice: 100,
     initialPrice: 150,
     sellingPrice: 200,
-    discount: "10%",
     location: "Warehouse A",
     stockAvailable: 200
   },
   // Add more mock products as needed
+];
+
+const discountOptions = [
+  { value: "0", label: "No Discount" },
+  { value: "5", label: "5%" },
+  { value: "10", label: "10%" },
+  { value: "15", label: "15%" },
+  { value: "20", label: "20%" },
 ];
 
 export default function ProductSearchResults({
@@ -35,7 +42,7 @@ export default function ProductSearchResults({
   selectedProducts
 }: ProductSearchResultsProps) {
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
-  const [applyDiscounts, setApplyDiscounts] = useState<{ [key: string]: boolean }>({});
+  const [discounts, setDiscounts] = useState<{ [key: string]: number }>({});
 
   const filteredProducts = mockProducts.filter(product =>
     product.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -47,19 +54,16 @@ export default function ProductSearchResults({
     setQuantities({ ...quantities, [stockCode]: quantity });
   };
 
-  const handleDiscountToggle = (stockCode: string) => {
-    setApplyDiscounts(prev => ({
-      ...prev,
-      [stockCode]: !prev[stockCode]
-    }));
+  const handleDiscountChange = (stockCode: string, value: string) => {
+    setDiscounts({ ...discounts, [stockCode]: parseInt(value) });
   };
 
   const handleSelect = (product: StockItem) => {
     const quantity = quantities[product.stockCode] || 0;
     if (quantity > 0 && quantity <= product.stockAvailable) {
-      onAddToOrder(product, quantity, applyDiscounts[product.stockCode] || false);
+      onAddToOrder(product, quantity, discounts[product.stockCode] || 0);
       setQuantities({ ...quantities, [product.stockCode]: 0 });
-      setApplyDiscounts({ ...applyDiscounts, [product.stockCode]: false });
+      setDiscounts({ ...discounts, [product.stockCode]: 0 });
     }
   };
 
@@ -73,7 +77,7 @@ export default function ProductSearchResults({
             <TableHead>Available Quantity</TableHead>
             <TableHead>Order Quantity</TableHead>
             <TableHead>Selling Price</TableHead>
-            <TableHead>Apply Discount</TableHead>
+            <TableHead>Discount</TableHead>
             <TableHead>Action</TableHead>
           </TableRow>
         </TableHeader>
@@ -95,13 +99,22 @@ export default function ProductSearchResults({
               </TableCell>
               <TableCell>${product.sellingPrice}</TableCell>
               <TableCell>
-                <Toggle
-                  pressed={applyDiscounts[product.stockCode]}
-                  onPressedChange={() => handleDiscountToggle(product.stockCode)}
+                <Select
+                  value={String(discounts[product.stockCode] || "0")}
+                  onValueChange={(value) => handleDiscountChange(product.stockCode, value)}
                   disabled={selectedProducts.some(p => p.stockCode === product.stockCode)}
                 >
-                  {product.discount}
-                </Toggle>
+                  <SelectTrigger className="w-24">
+                    <SelectValue placeholder="Discount" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {discountOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </TableCell>
               <TableCell>
                 <Button

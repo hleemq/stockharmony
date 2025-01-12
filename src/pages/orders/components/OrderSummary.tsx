@@ -5,7 +5,7 @@ import { StockItem } from "@/types/stock";
 import { generateOrderNumber, generateOrderPDF } from "@/utils/pdfGenerator";
 
 interface OrderSummaryProps {
-  products: (StockItem & { orderQuantity: number; applyDiscount: boolean })[];
+  products: (StockItem & { orderQuantity: number; discountPercentage: number })[];
   onRemoveProduct: (stockCode: string) => void;
   customerDetails: {
     name: string;
@@ -19,8 +19,7 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
   const calculateTotal = () => {
     return products.reduce((total, product) => {
       const price = product.sellingPrice * product.orderQuantity;
-      const discount = product.applyDiscount ? (parseFloat(product.discount) || 0) : 0;
-      return total + (price - (price * discount / 100));
+      return total + (price - (price * product.discountPercentage / 100));
     }, 0);
   };
 
@@ -45,11 +44,10 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
             <TableRow>
               <TableHead>Stock Code</TableHead>
               <TableHead>Product Name</TableHead>
-              <TableHead>Boxes</TableHead>
-              <TableHead>Units</TableHead>
+              <TableHead>Quantity</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Discount</TableHead>
-              <TableHead>Price with Discount</TableHead>
+              <TableHead>Discounted Price</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
@@ -57,21 +55,18 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
           <TableBody>
             {products.map((product) => {
               const basePrice = product.sellingPrice * product.orderQuantity;
-              const discount = product.applyDiscount ? (parseFloat(product.discount) || 0) : 0;
-              const discountedPrice = basePrice - (basePrice * discount / 100);
-              const boxes = Math.floor(product.orderQuantity / product.unitsPerBox);
-              const remainingUnits = product.orderQuantity % product.unitsPerBox;
+              const discountAmount = basePrice * (product.discountPercentage / 100);
+              const finalPrice = basePrice - discountAmount;
 
               return (
                 <TableRow key={product.stockCode}>
                   <TableCell>{product.stockCode}</TableCell>
                   <TableCell>{product.productName}</TableCell>
-                  <TableCell>{boxes}</TableCell>
-                  <TableCell>{remainingUnits}</TableCell>
+                  <TableCell>{product.orderQuantity}</TableCell>
                   <TableCell>${product.sellingPrice}</TableCell>
-                  <TableCell>{product.applyDiscount ? product.discount : '-'}</TableCell>
-                  <TableCell>${discountedPrice.toFixed(2)}</TableCell>
-                  <TableCell>${discountedPrice.toFixed(2)}</TableCell>
+                  <TableCell>{product.discountPercentage}%</TableCell>
+                  <TableCell>${(product.sellingPrice * (1 - product.discountPercentage / 100)).toFixed(2)}</TableCell>
+                  <TableCell>${finalPrice.toFixed(2)}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
@@ -86,7 +81,7 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
               );
             })}
             <TableRow>
-              <TableCell colSpan={7} className="text-right font-semibold">
+              <TableCell colSpan={6} className="text-right font-semibold">
                 Total Amount:
               </TableCell>
               <TableCell colSpan={2} className="font-semibold">
