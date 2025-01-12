@@ -5,9 +5,9 @@ import { Order, OrderItem } from '@/types/order';
 
 interface CustomerDetails {
   name: string;
-  email: string;
-  phone: string;
-  address: string;
+  email?: string;
+  phone?: string;
+  address?: string;
 }
 
 interface OrderProduct extends StockItem {

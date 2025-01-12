@@ -65,7 +65,6 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
       address: data.address || ''
     }, selectedProducts, orderNumber);
     
-    // Add the order to the table
     if (typeof window !== 'undefined' && (window as any).addOrderToTable) {
       (window as any).addOrderToTable(order);
     }
