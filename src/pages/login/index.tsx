@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthError } from "@supabase/supabase-js";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
@@ -33,21 +33,29 @@ export default function LoginPage() {
   }, [navigate]);
 
   const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("Error checking auth session:", error);
+      setErrorMessage(getErrorMessage(error));
+      return;
+    }
     if (session) {
       navigate('/stock');
     }
   };
 
   const getErrorMessage = (error: AuthError) => {
-    switch (error.message) {
-      case 'Invalid login credentials':
-        return 'Invalid email or password. Please check your credentials and try again.';
-      case 'Email not confirmed':
-        return 'Please verify your email address before signing in.';
-      default:
-        return error.message;
+    if (error instanceof AuthApiError) {
+      switch (error.message) {
+        case 'Invalid login credentials':
+          return 'Invalid email or password. Please check your credentials and try again.';
+        case 'Email not confirmed':
+          return 'Please verify your email address before signing in.';
+        default:
+          return error.message;
+      }
     }
+    return error.message;
   };
 
   return (
