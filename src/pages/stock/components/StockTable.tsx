@@ -10,19 +10,60 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Edit2, Search, Trash2 } from "lucide-react";
 import { StockItem } from "@/types/stock";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface StockTableProps {
   items: StockItem[];
+  isLoading?: boolean;
   onEdit?: (item: StockItem) => void;
   onDelete?: (item: StockItem) => void;
 }
 
-export function StockTable({ items, onEdit, onDelete }: StockTableProps) {
+export function StockTable({ items, isLoading, onEdit, onDelete }: StockTableProps) {
   const getStockStatus = (available: number) => {
     if (available <= 0) return "Out of Stock";
     if (available < 10) return "Low Stock";
     return "In Stock";
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="relative">
+          <Skeleton className="h-10 w-full md:max-w-sm" />
+        </div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Stock Code</TableHead>
+                <TableHead>Product Name</TableHead>
+                <TableHead>Boxes</TableHead>
+                <TableHead>Units/Box</TableHead>
+                <TableHead>Initial Price</TableHead>
+                <TableHead>Selling Price</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Stock Status</TableHead>
+                <TableHead>Units Left</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(5)].map((_, index) => (
+                <TableRow key={index}>
+                  {[...Array(10)].map((_, cellIndex) => (
+                    <TableCell key={cellIndex}>
+                      <Skeleton className="h-4 w-[100px]" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

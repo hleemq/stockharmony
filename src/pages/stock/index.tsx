@@ -1,16 +1,84 @@
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StockTable } from "./components/StockTable";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddStockForm } from "./components/AddStockForm";
 import { StockItem } from "@/types/stock";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function StockPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [items, setItems] = useState<StockItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleAddItem = (newItem: StockItem) => {
-    setItems([...items, newItem]);
+  useEffect(() => {
+    fetchStockItems();
+  }, []);
+
+  const fetchStockItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('*');
+
+      if (error) {
+        throw error;
+      }
+
+      const stockItems: StockItem[] = data.map(item => ({
+        stockCode: item.sku,
+        productName: item.name,
+        boxes: item.box_count || 0,
+        unitsPerBox: item.quantity_per_box,
+        shipmentFees: 0, // Add this to the database if needed
+        boughtPrice: item.price,
+        initialPrice: item.price,
+        sellingPrice: item.unit_price || 0,
+        location: item.warehouse_id || '',
+        imageUrl: item.image_url,
+        stockAvailable: item.total_quantity
+      }));
+
+      setItems(stockItems);
+    } catch (error) {
+      console.error('Error fetching stock items:', error);
+      toast.error('Failed to load stock items');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddItem = async (newItem: StockItem) => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .insert([{
+          name: newItem.productName,
+          sku: newItem.stockCode,
+          box_count: newItem.boxes,
+          quantity_per_box: newItem.unitsPerBox,
+          price: newItem.boughtPrice,
+          unit_price: newItem.sellingPrice,
+          warehouse_id: newItem.location,
+          image_url: newItem.imageUrl,
+          total_quantity: newItem.stockAvailable,
+          size: 'default', // Required field
+          category: 'homme', // Required field, using default value
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setItems(prevItems => [...prevItems, newItem]);
+      toast.success('Stock item added successfully');
+    } catch (error) {
+      console.error('Error adding stock item:', error);
+      toast.error('Failed to add stock item');
+    }
   };
 
   return (
@@ -28,7 +96,7 @@ export default function StockPage() {
         </Button>
       </div>
 
-      <StockTable items={items} />
+      <StockTable items={items} isLoading={isLoading} />
 
       <AddStockForm 
         open={showAddForm} 
