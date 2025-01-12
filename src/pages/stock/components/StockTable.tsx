@@ -43,7 +43,6 @@ export function StockTable({ items, onEdit, onDelete }: StockTableProps) {
               <TableHead>Units/Box</TableHead>
               <TableHead>Initial Price</TableHead>
               <TableHead>Selling Price</TableHead>
-              <TableHead>Discount</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Stock Status</TableHead>
               <TableHead>Units Left</TableHead>
@@ -59,7 +58,6 @@ export function StockTable({ items, onEdit, onDelete }: StockTableProps) {
                 <TableCell>{item.unitsPerBox}</TableCell>
                 <TableCell>${item.initialPrice.toFixed(2)}</TableCell>
                 <TableCell>${item.sellingPrice.toFixed(2)}</TableCell>
-                <TableCell>${item.discount}</TableCell>
                 <TableCell>{item.location}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs ${

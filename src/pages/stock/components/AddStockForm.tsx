@@ -31,7 +31,6 @@ const formSchema = z.object({
   shipmentFees: z.string().min(1, "Shipment fees are required"),
   boughtPrice: z.string().min(1, "Bought price is required"),
   sellingPrice: z.string().min(1, "Selling price is required"),
-  discount: z.string(),
   location: z.string().min(1, "Location is required"),
 });
 
@@ -54,7 +53,6 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
       shipmentFees: "",
       boughtPrice: "",
       sellingPrice: "",
-      discount: "",
       location: "",
     },
   });
@@ -79,10 +77,9 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
       boughtPrice: parseFloat(values.boughtPrice),
       initialPrice,
       sellingPrice: parseFloat(values.sellingPrice),
-      discount: values.discount || "0",
       location: values.location,
       imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
-      stockAvailable: boxes * unitsPerBox, // Initial stock is boxes * units per box
+      stockAvailable: boxes * unitsPerBox,
     };
     
     onAddItem(newItem);
@@ -206,23 +203,6 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
                       <Input
                         type="number"
                         placeholder="Enter selling price"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="discount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Discount</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter discount amount"
                         {...field}
                       />
                     </FormControl>
