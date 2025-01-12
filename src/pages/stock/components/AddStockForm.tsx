@@ -20,16 +20,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { StockItem } from "@/types/stock";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface Warehouse {
-  id: string;
-  name: string;
-  location: string;
-}
+const warehouses = [
+  { id: "1", name: "Depot Sbit", location: "Location 1" },
+  { id: "2", name: "Showroom", location: "Location 2" },
+];
 
 const formSchema = z.object({
   stockCode: z.string().min(1, "Stock code is required"),
@@ -50,35 +48,6 @@ interface AddStockFormProps {
 
 export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [isLoadingWarehouses, setIsLoadingWarehouses] = useState(true);
-  
-  useEffect(() => {
-    if (open) {
-      fetchWarehouses();
-    }
-  }, [open]);
-
-  const fetchWarehouses = async () => {
-    try {
-      setIsLoadingWarehouses(true);
-      const { data, error } = await supabase
-        .from('warehouses')
-        .select('id, name, location');
-      
-      if (error) {
-        toast.error('Failed to load warehouses');
-        throw error;
-      }
-
-      console.log('Fetched warehouses:', data); // Debug log
-      setWarehouses(data || []);
-    } catch (error) {
-      console.error('Error fetching warehouses:', error);
-    } finally {
-      setIsLoadingWarehouses(false);
-    }
-  };
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -263,17 +232,11 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {isLoadingWarehouses ? (
-                          <SelectItem value="loading" disabled>Loading warehouses...</SelectItem>
-                        ) : warehouses.length === 0 ? (
-                          <SelectItem value="none" disabled>No warehouses available</SelectItem>
-                        ) : (
-                          warehouses.map((warehouse) => (
-                            <SelectItem key={warehouse.id} value={warehouse.id}>
-                              {warehouse.name} - {warehouse.location}
-                            </SelectItem>
-                          ))
-                        )}
+                        {warehouses.map((warehouse) => (
+                          <SelectItem key={warehouse.id} value={warehouse.id}>
+                            {warehouse.name} - {warehouse.location}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
