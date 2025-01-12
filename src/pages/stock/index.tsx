@@ -20,7 +20,18 @@ export default function StockPage() {
     try {
       const { data, error } = await supabase
         .from('inventory_items')
-        .select('*');
+        .select(`
+          id,
+          sku,
+          name,
+          box_count,
+          quantity_per_box,
+          price,
+          unit_price,
+          warehouse_id,
+          image_url,
+          total_quantity
+        `);
 
       if (error) {
         throw error;
@@ -60,7 +71,7 @@ export default function StockPage() {
           quantity_per_box: newItem.unitsPerBox,
           price: newItem.boughtPrice,
           unit_price: newItem.sellingPrice,
-          warehouse_id: newItem.location,
+          warehouse_id: newItem.location, // Now this will be a valid UUID
           image_url: newItem.imageUrl,
           total_quantity: newItem.stockAvailable,
           size: 'default', // Required field

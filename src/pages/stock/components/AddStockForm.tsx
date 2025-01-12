@@ -20,8 +20,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StockItem } from "@/types/stock";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Warehouse {
+  id: string;
+  name: string;
+  location: string;
+}
 
 const formSchema = z.object({
   stockCode: z.string().min(1, "Stock code is required"),
@@ -42,7 +49,25 @@ interface AddStockFormProps {
 
 export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   
+  useEffect(() => {
+    fetchWarehouses();
+  }, []);
+
+  const fetchWarehouses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('warehouses')
+        .select('id, name, location');
+      
+      if (error) throw error;
+      setWarehouses(data || []);
+    } catch (error) {
+      console.error('Error fetching warehouses:', error);
+    }
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -226,16 +251,17 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="warehouse-a">Warehouse A</SelectItem>
-                        <SelectItem value="warehouse-b">Warehouse B</SelectItem>
-                        <SelectItem value="warehouse-c">Warehouse C</SelectItem>
+                        {warehouses.map((warehouse) => (
+                          <SelectItem key={warehouse.id} value={warehouse.id}>
+                            {warehouse.name} - {warehouse.location}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
             </div>
 
             <div className="flex justify-center">
