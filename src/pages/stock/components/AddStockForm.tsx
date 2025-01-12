@@ -54,8 +54,10 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
   const [isLoadingWarehouses, setIsLoadingWarehouses] = useState(true);
   
   useEffect(() => {
-    fetchWarehouses();
-  }, []);
+    if (open) {
+      fetchWarehouses();
+    }
+  }, [open]);
 
   const fetchWarehouses = async () => {
     try {
@@ -69,6 +71,7 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
         throw error;
       }
 
+      console.log('Fetched warehouses:', data); // Debug log
       setWarehouses(data || []);
     } catch (error) {
       console.error('Error fetching warehouses:', error);
