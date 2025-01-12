@@ -6,18 +6,33 @@ import { AddStockForm } from "./components/AddStockForm";
 import { StockItem } from "@/types/stock";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export default function StockPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [items, setItems] = useState<StockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    checkUser();
     fetchStockItems();
   }, []);
 
+  const checkUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.error("Please login to access this page");
+      navigate("/login");
+      return;
+    }
+  };
+
   const fetchStockItems = async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
       const { data, error } = await supabase
         .from('inventory_items')
         .select(`
@@ -62,6 +77,12 @@ export default function StockPage() {
 
   const handleAddItem = async (newItem: StockItem) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Please login to add items");
+        return;
+      }
+
       const { data, error } = await supabase
         .from('inventory_items')
         .insert([{
@@ -71,11 +92,11 @@ export default function StockPage() {
           quantity_per_box: newItem.unitsPerBox,
           price: newItem.boughtPrice,
           unit_price: newItem.sellingPrice,
-          warehouse_id: newItem.location, // Now this will be a valid UUID
+          warehouse_id: newItem.location,
           image_url: newItem.imageUrl,
           total_quantity: newItem.stockAvailable,
-          size: 'default', // Required field
-          category: 'homme', // Required field, using default value
+          size: 'default',
+          category: 'homme',
         }])
         .select()
         .single();
