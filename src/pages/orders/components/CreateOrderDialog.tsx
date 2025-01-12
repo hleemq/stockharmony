@@ -3,9 +3,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 import ProductSearchResults from "./ProductSearchResults";
 import OrderSummary from "./OrderSummary";
 import { StockItem } from "@/types/stock";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const customerFormSchema = z.object({
+  name: z.string().min(1, "Customer name is required"),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal(""))
+});
+
+type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
 interface CreateOrderDialogProps {
   open: boolean;
@@ -16,12 +30,30 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<(StockItem & { orderQuantity: number })[]>([]);
 
+  const form = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      address: ""
+    }
+  });
+
   const handleAddToOrder = (product: StockItem, quantity: number) => {
     setSelectedProducts([...selectedProducts, { ...product, orderQuantity: quantity }]);
   };
 
   const handleRemoveFromOrder = (stockCode: string) => {
     setSelectedProducts(selectedProducts.filter((p) => p.stockCode !== stockCode));
+  };
+
+  const onSubmit = (data: CustomerFormValues) => {
+    // Here you would typically save both the order and customer data
+    console.log("Customer Data:", data);
+    console.log("Order Products:", selectedProducts);
+    // Add logic to save customer to customers section
+    onClose();
   };
 
   return (
@@ -31,33 +63,104 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
           <DialogTitle>Create New Order</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
-          {/* Search Section */}
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Customer Details Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Customer Details</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
-          {/* Search Results */}
-          <ProductSearchResults
-            searchQuery={searchQuery}
-            onAddToOrder={handleAddToOrder}
-            selectedProducts={selectedProducts}
-          />
+            {/* Product Search Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Products</h3>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
 
-          {/* Order Summary */}
-          {selectedProducts.length > 0 && (
-            <OrderSummary
-              products={selectedProducts}
-              onRemoveProduct={handleRemoveFromOrder}
-            />
-          )}
-        </div>
+              {/* Search Results */}
+              <ProductSearchResults
+                searchQuery={searchQuery}
+                onAddToOrder={handleAddToOrder}
+                selectedProducts={selectedProducts}
+              />
+
+              {/* Order Summary */}
+              {selectedProducts.length > 0 && (
+                <OrderSummary
+                  products={selectedProducts}
+                  onRemoveProduct={handleRemoveFromOrder}
+                />
+              )}
+
+              {/* Submit Button */}
+              {selectedProducts.length > 0 && (
+                <Button type="submit" className="w-full">
+                  Create Order
+                </Button>
+              )}
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
