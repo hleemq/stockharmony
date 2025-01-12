@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { StockItem } from "@/types/stock";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
@@ -58,6 +57,15 @@ export default function ProductSearchResults({
     }
   };
 
+  // Prevent quantity dialog from closing when clicking outside
+  const handleQuantityDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setShowQuantityDialog(false);
+      setSelectedProduct(null);
+      setQuantity(1);
+    }
+  };
+
   return (
     <>
       <div className="rounded-md border">
@@ -96,7 +104,7 @@ export default function ProductSearchResults({
         </Table>
       </div>
 
-      <Dialog open={showQuantityDialog} onOpenChange={setShowQuantityDialog}>
+      <Dialog open={showQuantityDialog} onOpenChange={handleQuantityDialogOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enter Order Details</DialogTitle>
