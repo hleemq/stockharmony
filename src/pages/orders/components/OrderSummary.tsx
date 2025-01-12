@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { FileText, Trash2 } from "lucide-react";
 import { StockItem } from "@/types/stock";
-import { generateOrderPDF } from "@/utils/pdfGenerator";
+import { generateOrderNumber, generateOrderPDF } from "@/utils/pdfGenerator";
 
 interface OrderSummaryProps {
   products: (StockItem & { orderQuantity: number; applyDiscount: boolean })[];
@@ -25,7 +25,8 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
   };
 
   const handleExportOrder = () => {
-    generateOrderPDF(customerDetails, products);
+    const orderNumber = generateOrderNumber();
+    generateOrderPDF(customerDetails, products, orderNumber);
   };
 
   return (

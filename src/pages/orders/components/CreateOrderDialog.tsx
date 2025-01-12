@@ -59,7 +59,7 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
   const onSubmit = (data: CustomerFormValues) => {
     const orderNumber = generateOrderNumber();
     const order = generateOrderPDF({
-      name: data.name || '',
+      name: data.name,
       email: data.email || '',
       phone: data.phone || '',
       address: data.address || ''
@@ -73,7 +73,6 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
     onClose();
   };
 
-  // This ensures the dialog stays open and only closes when explicitly requested
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       onClose();
