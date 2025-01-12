@@ -28,7 +28,10 @@ interface CreateOrderDialogProps {
 
 export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<(StockItem & { orderQuantity: number })[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<(StockItem & { 
+    orderQuantity: number;
+    applyDiscount: boolean;
+  })[]>([]);
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
@@ -40,8 +43,12 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
     }
   });
 
-  const handleAddToOrder = (product: StockItem, quantity: number) => {
-    setSelectedProducts([...selectedProducts, { ...product, orderQuantity: quantity }]);
+  const handleAddToOrder = (product: StockItem, quantity: number, applyDiscount: boolean) => {
+    setSelectedProducts([...selectedProducts, { 
+      ...product, 
+      orderQuantity: quantity,
+      applyDiscount 
+    }]);
   };
 
   const handleRemoveFromOrder = (stockCode: string) => {
