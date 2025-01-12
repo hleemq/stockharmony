@@ -8,8 +8,13 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { StockItem } from "@/types/stock";
 
-export function StockTable() {
+interface StockTableProps {
+  items: StockItem[];
+}
+
+export function StockTable({ items }: StockTableProps) {
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -34,16 +39,18 @@ export function StockTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow>
-              <TableCell className="font-medium">STK001</TableCell>
-              <TableCell>Product A</TableCell>
-              <TableCell>Box of Product A with 13 pieces inside</TableCell>
-              <TableCell>pcs</TableCell>
-              <TableCell>$100.00</TableCell>
-              <TableCell>$150.00</TableCell>
-              <TableCell>$10.00 (6.67%)</TableCell>
-              <TableCell>Warehouse A</TableCell>
-            </TableRow>
+            {items.map((item) => (
+              <TableRow key={item.stockCode}>
+                <TableCell className="font-medium">{item.stockCode}</TableCell>
+                <TableCell>{item.productName}</TableCell>
+                <TableCell>{item.boxDetails}</TableCell>
+                <TableCell>{item.unit}</TableCell>
+                <TableCell>${item.initialPrice.toFixed(2)}</TableCell>
+                <TableCell>${item.sellingPrice.toFixed(2)}</TableCell>
+                <TableCell>${item.discount}</TableCell>
+                <TableCell>{item.location}</TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>

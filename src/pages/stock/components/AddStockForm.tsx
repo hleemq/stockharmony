@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,16 +23,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useState } from "react";
+import { StockItem } from "@/types/stock";
 
 const formSchema = z.object({
   stockCode: z.string().min(1, "Stock code is required"),
   productName: z.string().min(1, "Product name is required"),
-  boxDetails: z.string(),
+  boxDetails: z.string().min(1, "Box details are required"),
   unit: z.string().min(1, "Unit is required"),
-  initialPrice: z.string().min(1, "Initial price is required"),
+  shipmentFees: z.string().min(1, "Shipment fees are required"),
+  boughtPrice: z.string().min(1, "Bought price is required"),
   sellingPrice: z.string().min(1, "Selling price is required"),
   discount: z.string(),
   location: z.string().min(1, "Location is required"),
@@ -40,9 +44,12 @@ const formSchema = z.object({
 interface AddStockFormProps {
   open: boolean;
   onClose: () => void;
+  onAddItem: (item: StockItem) => void;
 }
 
-export function AddStockForm({ open, onClose }: AddStockFormProps) {
+export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -50,23 +57,53 @@ export function AddStockForm({ open, onClose }: AddStockFormProps) {
       productName: "",
       boxDetails: "",
       unit: "",
-      initialPrice: "",
+      shipmentFees: "",
+      boughtPrice: "",
       sellingPrice: "",
       discount: "",
       location: "",
     },
   });
 
+  const calculateInitialPrice = (shipmentFees: string, boughtPrice: string) => {
+    const fees = parseFloat(shipmentFees) || 0;
+    const price = parseFloat(boughtPrice) || 0;
+    return fees + price;
+  };
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
+    const initialPrice = calculateInitialPrice(values.shipmentFees, values.boughtPrice);
+    
+    const newItem: StockItem = {
+      ...values,
+      shipmentFees: parseFloat(values.shipmentFees),
+      boughtPrice: parseFloat(values.boughtPrice),
+      initialPrice,
+      sellingPrice: parseFloat(values.sellingPrice),
+      imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
+    };
+    
+    onAddItem(newItem);
     onClose();
+    form.reset();
+    setImageFile(null);
   }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Add New Stock Item</DialogTitle>
+          <DialogDescription>
+            Fill in the details to add a new item to your inventory
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -104,7 +141,7 @@ export function AddStockForm({ open, onClose }: AddStockFormProps) {
                   <FormItem>
                     <FormLabel>Box Details</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter box details" {...field} />
+                      <Input placeholder="e.g., Box of 13 pieces" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -137,14 +174,31 @@ export function AddStockForm({ open, onClose }: AddStockFormProps) {
               />
               <FormField
                 control={form.control}
-                name="initialPrice"
+                name="shipmentFees"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Initial Price</FormLabel>
+                    <FormLabel>Shipment Fees</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        placeholder="Enter initial price"
+                        placeholder="Enter shipment fees"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="boughtPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bought Price</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Enter bought price"
                         {...field}
                       />
                     </FormControl>
@@ -213,16 +267,25 @@ export function AddStockForm({ open, onClose }: AddStockFormProps) {
               />
             </div>
 
-            <div className="flex gap-4">
-              <Button type="button" variant="outline" className="w-full">
-                <Camera className="mr-2" />
-                Take Photo
-              </Button>
-              <Button type="button" variant="outline" className="w-full">
+            <div className="flex justify-center">
+              <Button type="button" variant="outline" className="w-full max-w-md" onClick={() => document.getElementById('image-upload')?.click()}>
                 <Upload className="mr-2" />
                 Upload Image
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
               </Button>
             </div>
+
+            {imageFile && (
+              <p className="text-sm text-muted-foreground text-center">
+                Selected file: {imageFile.name}
+              </p>
+            )}
 
             <div className="flex justify-end gap-4">
               <Button type="button" variant="outline" onClick={onClose}>

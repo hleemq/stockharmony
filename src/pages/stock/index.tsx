@@ -3,9 +3,15 @@ import { Button } from "@/components/ui/button";
 import { StockTable } from "./components/StockTable";
 import { useState } from "react";
 import { AddStockForm } from "./components/AddStockForm";
+import { StockItem } from "@/types/stock";
 
 export default function StockPage() {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [items, setItems] = useState<StockItem[]>([]);
+
+  const handleAddItem = (newItem: StockItem) => {
+    setItems([...items, newItem]);
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -22,9 +28,13 @@ export default function StockPage() {
         </Button>
       </div>
 
-      <StockTable />
+      <StockTable items={items} />
 
-      <AddStockForm open={showAddForm} onClose={() => setShowAddForm(false)} />
+      <AddStockForm 
+        open={showAddForm} 
+        onClose={() => setShowAddForm(false)} 
+        onAddItem={handleAddItem}
+      />
     </div>
   );
 }
