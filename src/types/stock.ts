@@ -1,8 +1,8 @@
 export interface StockItem {
   stockCode: string;
   productName: string;
-  boxDetails: string;
-  unit: string;
+  boxes: number;
+  unitsPerBox: number;
   shipmentFees: number;
   boughtPrice: number;
   initialPrice: number;
@@ -10,4 +10,5 @@ export interface StockItem {
   discount: string;
   location: string;
   imageUrl?: string;
+  stockAvailable: number;
 }

@@ -15,13 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -32,8 +26,8 @@ import { StockItem } from "@/types/stock";
 const formSchema = z.object({
   stockCode: z.string().min(1, "Stock code is required"),
   productName: z.string().min(1, "Product name is required"),
-  boxDetails: z.string().min(1, "Box details are required"),
-  unit: z.string().min(1, "Unit is required"),
+  boxes: z.string().min(1, "Number of boxes is required"),
+  unitsPerBox: z.string().min(1, "Units per box is required"),
   shipmentFees: z.string().min(1, "Shipment fees are required"),
   boughtPrice: z.string().min(1, "Bought price is required"),
   sellingPrice: z.string().min(1, "Selling price is required"),
@@ -55,8 +49,8 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
     defaultValues: {
       stockCode: "",
       productName: "",
-      boxDetails: "",
-      unit: "",
+      boxes: "",
+      unitsPerBox: "",
       shipmentFees: "",
       boughtPrice: "",
       sellingPrice: "",
@@ -73,12 +67,14 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const initialPrice = calculateInitialPrice(values.shipmentFees, values.boughtPrice);
+    const boxes = parseInt(values.boxes) || 0;
+    const unitsPerBox = parseInt(values.unitsPerBox) || 0;
     
     const newItem: StockItem = {
       stockCode: values.stockCode,
       productName: values.productName,
-      boxDetails: values.boxDetails,
-      unit: values.unit,
+      boxes: boxes,
+      unitsPerBox: unitsPerBox,
       shipmentFees: parseFloat(values.shipmentFees),
       boughtPrice: parseFloat(values.boughtPrice),
       initialPrice,
@@ -86,6 +82,7 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
       discount: values.discount || "0",
       location: values.location,
       imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
+      stockAvailable: boxes * unitsPerBox, // Initial stock is boxes * units per box
     };
     
     onAddItem(newItem);
@@ -141,12 +138,12 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
               />
               <FormField
                 control={form.control}
-                name="boxDetails"
+                name="boxes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Box Details</FormLabel>
+                    <FormLabel>Number of Boxes</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Box of 13 pieces" {...field} />
+                      <Input type="number" placeholder="Enter number of boxes" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -154,25 +151,13 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
               />
               <FormField
                 control={form.control}
-                name="unit"
+                name="unitsPerBox"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Unit</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select unit" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pcs">Pieces</SelectItem>
-                        <SelectItem value="box">Box</SelectItem>
-                        <SelectItem value="kg">Kilogram</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Units per Box</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Enter units per box" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -270,6 +255,7 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
                   </FormItem>
                 )}
               />
+
             </div>
 
             <div className="flex justify-center">
