@@ -1,11 +1,11 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { FileText, Trash2 } from "lucide-react";
-import { StockItem } from "@/types/stock";
+import { OrderProduct } from "@/types/stock";
 import { generateOrderNumber, generateOrderPDF } from "@/utils/pdfGenerator";
 
 interface OrderSummaryProps {
-  products: (StockItem & { orderQuantity: number; discountPercentage: number })[];
+  products: OrderProduct[];
   onRemoveProduct: (stockCode: string) => void;
   customerDetails: {
     name: string;
@@ -19,7 +19,7 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
   const calculateTotal = () => {
     return products.reduce((total, product) => {
       const price = product.sellingPrice * product.orderQuantity;
-      return total + (price - (price * product.discountPercentage / 100));
+      return total + (price - (product.applyDiscount ? (price * product.discountPercentage / 100) : 0));
     }, 0);
   };
 
@@ -47,7 +47,7 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
               <TableHead>Quantity</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Discount</TableHead>
-              <TableHead>Discounted Price</TableHead>
+              <TableHead>Final Price</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
@@ -55,7 +55,7 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
           <TableBody>
             {products.map((product) => {
               const basePrice = product.sellingPrice * product.orderQuantity;
-              const discountAmount = basePrice * (product.discountPercentage / 100);
+              const discountAmount = product.applyDiscount ? (basePrice * product.discountPercentage / 100) : 0;
               const finalPrice = basePrice - discountAmount;
 
               return (
@@ -63,9 +63,13 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
                   <TableCell>{product.stockCode}</TableCell>
                   <TableCell>{product.productName}</TableCell>
                   <TableCell>{product.orderQuantity}</TableCell>
-                  <TableCell>${product.sellingPrice}</TableCell>
-                  <TableCell>{product.discountPercentage}%</TableCell>
-                  <TableCell>${(product.sellingPrice * (1 - product.discountPercentage / 100)).toFixed(2)}</TableCell>
+                  <TableCell>${product.sellingPrice.toFixed(2)}</TableCell>
+                  <TableCell>
+                    {product.applyDiscount ? `${product.discountPercentage}%` : '-'}
+                  </TableCell>
+                  <TableCell>
+                    ${(product.sellingPrice * (1 - (product.applyDiscount ? product.discountPercentage / 100 : 0))).toFixed(2)}
+                  </TableCell>
                   <TableCell>${finalPrice.toFixed(2)}</TableCell>
                   <TableCell>
                     <Button

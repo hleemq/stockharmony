@@ -1,18 +1,12 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { StockItem } from '@/types/stock';
-import { Order, OrderItem } from '@/types/order';
+import { OrderProduct } from '@/types/stock';
 
 interface CustomerDetails {
   name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-}
-
-interface OrderProduct extends StockItem {
-  orderQuantity: number;
-  applyDiscount: boolean;
+  email: string;
+  phone: string;
+  address: string;
 }
 
 export const generateOrderNumber = () => {
@@ -24,13 +18,13 @@ export const generateOrderNumber = () => {
 };
 
 export const generateOrderPDF = (
-  customerDetails: CustomerDetails, 
+  customerDetails: CustomerDetails,
   products: OrderProduct[],
   orderNumber: string
-): Order => {
+) => {
   const doc = new jsPDF();
   const orderDate = new Date().toISOString();
-  
+
   // Set document properties
   doc.setProperties({
     title: 'Order Form',
@@ -43,7 +37,7 @@ export const generateOrderPDF = (
   doc.setFont('helvetica', 'bold');
   doc.text('ORDER FORM', doc.internal.pageSize.width / 2, 20, { align: 'center' });
 
-  // Order Number
+  // Order Number and Date
   doc.setFontSize(12);
   doc.text(`Order Number: ${orderNumber}`, 15, 30);
   doc.text(`Date: ${new Date().toLocaleDateString()}`, 15, 37);
@@ -51,17 +45,17 @@ export const generateOrderPDF = (
   // Customer Details
   doc.setFont('helvetica', 'normal');
   doc.text(`Customer Name: ${customerDetails.name}`, 15, 47);
-  doc.text(`Address: ${customerDetails.address || 'N/A'}`, 15, 54);
-  doc.text(`Phone: ${customerDetails.phone || 'N/A'}`, 15, 61);
-  doc.text(`Email: ${customerDetails.email || 'N/A'}`, 15, 68);
+  doc.text(`Address: ${customerDetails.address}`, 15, 54);
+  doc.text(`Phone: ${customerDetails.phone}`, 15, 61);
+  doc.text(`Email: ${customerDetails.email}`, 15, 68);
 
   // Calculate table data
   const tableData = products.map(product => {
     const boxes = Math.floor(product.orderQuantity / product.unitsPerBox);
     const units = product.orderQuantity % product.unitsPerBox;
     const basePrice = product.sellingPrice * product.orderQuantity;
-    const discount = product.applyDiscount ? (parseFloat(product.discount) || 0) : 0;
-    const priceWithDiscount = basePrice - (basePrice * discount / 100);
+    const discountAmount = product.applyDiscount ? (basePrice * product.discountPercentage / 100) : 0;
+    const finalPrice = basePrice - discountAmount;
 
     return [
       product.stockCode,
@@ -69,17 +63,16 @@ export const generateOrderPDF = (
       boxes.toString(),
       units.toString(),
       `$${product.sellingPrice.toFixed(2)}`,
-      product.applyDiscount ? `${product.discount}%` : '-',
-      `$${priceWithDiscount.toFixed(2)}`,
-      `$${priceWithDiscount.toFixed(2)}`
+      product.applyDiscount ? `${product.discountPercentage}%` : '-',
+      `$${finalPrice.toFixed(2)}`
     ];
   });
 
   // Calculate total
   const total = products.reduce((sum, product) => {
     const basePrice = product.sellingPrice * product.orderQuantity;
-    const discount = product.applyDiscount ? (parseFloat(product.discount) || 0) : 0;
-    return sum + (basePrice - (basePrice * discount / 100));
+    const discountAmount = product.applyDiscount ? (basePrice * product.discountPercentage / 100) : 0;
+    return sum + (basePrice - discountAmount);
   }, 0);
 
   // Add table
@@ -91,12 +84,11 @@ export const generateOrderPDF = (
       'Units',
       'Price',
       'Discount',
-      'Price with Discount',
       'Total'
     ]],
     body: tableData,
     foot: [[
-      { content: 'Total Amount:', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: 'Total Amount:', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold' } },
       { content: `$${total.toFixed(2)}`, styles: { fontStyle: 'bold' } }
     ]],
     startY: 75,
@@ -112,25 +104,23 @@ export const generateOrderPDF = (
   doc.setFontSize(12);
   doc.text('ENJOY OUR PRODUCTS...', doc.internal.pageSize.width / 2, pageHeight - 20, { align: 'center' });
 
-  // Save the PDF with order number in filename
+  // Save the PDF
   doc.save(`${orderNumber}.pdf`);
 
-  // Create and return order object
-  const orderItems: OrderItem[] = products.map(product => ({
-    id: product.stockCode,
-    productName: product.productName,
-    quantity: product.orderQuantity,
-    price: product.sellingPrice,
-    total: product.sellingPrice * product.orderQuantity * (1 - (product.applyDiscount ? parseFloat(product.discount) / 100 : 0))
-  }));
-
+  // Return order object
   return {
     id: orderNumber,
     orderNumber,
     customerName: customerDetails.name,
     orderDate,
     status: 'pending',
-    items: orderItems,
+    items: products.map(product => ({
+      id: product.stockCode,
+      productName: product.productName,
+      quantity: product.orderQuantity,
+      price: product.sellingPrice,
+      total: product.sellingPrice * product.orderQuantity * (1 - (product.applyDiscount ? product.discountPercentage / 100 : 0))
+    })),
     totalAmount: total
   };
 };

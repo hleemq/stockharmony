@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { generateOrderNumber, generateOrderPDF } from "@/utils/pdfGenerator";
+import { OrderProduct } from "@/types/stock";
 
 const customerFormSchema = z.object({
   name: z.string().min(1, "Customer name is required"),
@@ -29,10 +30,7 @@ interface CreateOrderDialogProps {
 
 export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<(StockItem & { 
-    orderQuantity: number;
-    discountPercentage: number;
-  })[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<OrderProduct[]>([]);
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
@@ -48,7 +46,8 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
     setSelectedProducts([...selectedProducts, { 
       ...product, 
       orderQuantity: quantity,
-      discountPercentage 
+      discountPercentage,
+      applyDiscount: discountPercentage > 0
     }]);
   };
 

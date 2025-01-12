@@ -11,3 +11,9 @@ export interface StockItem {
   imageUrl?: string;
   stockAvailable: number;
 }
+
+export interface OrderProduct extends StockItem {
+  orderQuantity: number;
+  discountPercentage: number;
+  applyDiscount: boolean;
+}
