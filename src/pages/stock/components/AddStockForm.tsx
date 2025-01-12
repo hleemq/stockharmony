@@ -75,11 +75,16 @@ export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
     const initialPrice = calculateInitialPrice(values.shipmentFees, values.boughtPrice);
     
     const newItem: StockItem = {
-      ...values,
+      stockCode: values.stockCode,
+      productName: values.productName,
+      boxDetails: values.boxDetails,
+      unit: values.unit,
       shipmentFees: parseFloat(values.shipmentFees),
       boughtPrice: parseFloat(values.boughtPrice),
       initialPrice,
       sellingPrice: parseFloat(values.sellingPrice),
+      discount: values.discount || "0",
+      location: values.location,
       imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
     };
     
