@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Sidebar } from "./components/layout/Sidebar";
 import StockPage from "./pages/stock";
 import OrdersPage from "./pages/orders";
+import CustomersPage from "./pages/customers";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
           <Routes>
             <Route path="/stock" element={<StockPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/customers" element={<CustomersPage />} />
           </Routes>
         </main>
       </div>
