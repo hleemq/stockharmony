@@ -49,15 +49,20 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
   };
 
   const onSubmit = (data: CustomerFormValues) => {
-    // Here you would typically save both the order and customer data
     console.log("Customer Data:", data);
     console.log("Order Products:", selectedProducts);
-    // Add logic to save customer to customers section
     onClose();
   };
 
+  // This ensures the dialog stays open and only closes when explicitly requested
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Create New Order</DialogTitle>
