@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Toggle } from "@/components/ui/toggle";
 import { StockItem } from "@/types/stock";
 
 interface ProductSearchResultsProps {
   searchQuery: string;
-  onAddToOrder: (product: StockItem, quantity: number) => void;
-  selectedProducts: (StockItem & { orderQuantity: number })[];
+  onAddToOrder: (product: StockItem, quantity: number, applyDiscount: boolean) => void;
+  selectedProducts: (StockItem & { orderQuantity: number; applyDiscount: boolean })[];
 }
 
 // Mock data - replace with actual data fetching
@@ -34,6 +35,7 @@ export default function ProductSearchResults({
   selectedProducts
 }: ProductSearchResultsProps) {
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+  const [applyDiscounts, setApplyDiscounts] = useState<{ [key: string]: boolean }>({});
 
   const filteredProducts = mockProducts.filter(product =>
     product.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -45,11 +47,19 @@ export default function ProductSearchResults({
     setQuantities({ ...quantities, [stockCode]: quantity });
   };
 
+  const handleDiscountToggle = (stockCode: string) => {
+    setApplyDiscounts(prev => ({
+      ...prev,
+      [stockCode]: !prev[stockCode]
+    }));
+  };
+
   const handleSelect = (product: StockItem) => {
     const quantity = quantities[product.stockCode] || 0;
     if (quantity > 0 && quantity <= product.stockAvailable) {
-      onAddToOrder(product, quantity);
+      onAddToOrder(product, quantity, applyDiscounts[product.stockCode] || false);
       setQuantities({ ...quantities, [product.stockCode]: 0 });
+      setApplyDiscounts({ ...applyDiscounts, [product.stockCode]: false });
     }
   };
 
@@ -63,7 +73,7 @@ export default function ProductSearchResults({
             <TableHead>Available Quantity</TableHead>
             <TableHead>Order Quantity</TableHead>
             <TableHead>Selling Price</TableHead>
-            <TableHead>Discount</TableHead>
+            <TableHead>Apply Discount</TableHead>
             <TableHead>Action</TableHead>
           </TableRow>
         </TableHeader>
@@ -84,7 +94,15 @@ export default function ProductSearchResults({
                 />
               </TableCell>
               <TableCell>${product.sellingPrice}</TableCell>
-              <TableCell>{product.discount}</TableCell>
+              <TableCell>
+                <Toggle
+                  pressed={applyDiscounts[product.stockCode]}
+                  onPressedChange={() => handleDiscountToggle(product.stockCode)}
+                  disabled={selectedProducts.some(p => p.stockCode === product.stockCode)}
+                >
+                  {product.discount}
+                </Toggle>
+              </TableCell>
               <TableCell>
                 <Button
                   variant="outline"
