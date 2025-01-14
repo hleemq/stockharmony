@@ -18,7 +18,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { icon: Users, label: "Customers", path: "/customers" },
   ];
 
-  const sidebarClasses = `fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-white p-4 transition-transform duration-300 ease-in-out ${
+  const sidebarClasses = `fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-white p-4 transition-transform duration-300 ease-in-out safe-padding ${
     isOpen || !isMobile ? "translate-x-0" : "-translate-x-full"
   } md:translate-x-0`;
 
@@ -29,7 +29,11 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Stock Manager</h1>
             {isMobile && (
-              <button onClick={onClose} className="md:hidden">
+              <button 
+                onClick={onClose}
+                className="rounded-lg p-2 hover:bg-gray-100 active:bg-gray-200 md:hidden"
+                aria-label="Close menu"
+              >
                 <X className="h-6 w-6" />
               </button>
             )}
@@ -46,7 +50,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
                     isActive
                       ? "bg-gray-100 text-gray-900"
-                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                      : "text-gray-500 hover:bg-gray-50 active:bg-gray-100 hover:text-gray-900"
                   }`}
                 >
                   <Icon className="h-5 w-5" />

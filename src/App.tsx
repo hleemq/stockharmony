@@ -30,7 +30,18 @@ function App() {
       setSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    // Handle device orientation changes
+    const handleOrientationChange = () => {
+      // Force a re-render when orientation changes
+      window.dispatchEvent(new Event('resize'));
+    };
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
   }, []);
 
   if (isLoading) {
@@ -44,7 +55,7 @@ function App() {
   if (!session) {
     return (
       <Router>
-        <div className="min-h-[100dvh] bg-background">
+        <div className="min-h-[100dvh] bg-background safe-padding">
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
@@ -56,18 +67,20 @@ function App() {
 
   return (
     <Router>
-      <div className="flex min-h-[100dvh] flex-col bg-background">
+      <div className="flex min-h-[100dvh] flex-col bg-background safe-padding">
         <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
         <div className="flex flex-1">
           <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-          <main className="flex-1 p-4 pt-20 md:ml-64 md:p-6">
-            <Routes>
-              <Route path="/" element={<Navigate to="/stock" replace />} />
-              <Route path="/stock" element={<StockPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/customers" element={<CustomersPage />} />
-              <Route path="/login" element={<Navigate to="/stock" replace />} />
-            </Routes>
+          <main className="flex-1 content-padding pt-20 md:ml-64">
+            <div className="table-container">
+              <Routes>
+                <Route path="/" element={<Navigate to="/stock" replace />} />
+                <Route path="/stock" element={<StockPage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/customers" element={<CustomersPage />} />
+                <Route path="/login" element={<Navigate to="/stock" replace />} />
+              </Routes>
+            </div>
           </main>
         </div>
       </div>

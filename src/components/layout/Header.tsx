@@ -9,11 +9,12 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-30 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+    <header className="fixed left-0 right-0 top-0 z-30 border-b border-gray-200 bg-white/80 backdrop-blur-sm safe-padding">
       <div className="flex h-16 items-center gap-4 px-4 md:px-6">
         <button
           onClick={onMenuClick}
-          className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-gray-100 md:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-gray-100 active:bg-gray-200 md:hidden"
+          aria-label="Toggle menu"
         >
           <Menu className="h-6 w-6" />
         </button>
