@@ -122,8 +122,9 @@ export default function StockPage() {
     toast.info("Edit functionality coming soon");
   };
 
-  const handleDeleteItem = (deletedItem: StockItem) => {
+  const handleDeleteItem = async (deletedItem: StockItem) => {
     setItems(prevItems => prevItems.filter(item => item.stockCode !== deletedItem.stockCode));
+    await fetchStockItems(); // Refresh the list after deletion
   };
 
   return (

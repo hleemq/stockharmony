@@ -38,7 +38,11 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
         .delete()
         .eq('sku', item.stockCode);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting item:', error);
+        toast.error("Failed to delete item: " + error.message);
+        return;
+      }
 
       toast.success("Item deleted successfully");
       if (onDelete) onDelete(item);
@@ -52,6 +56,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
     if (onEdit) onEdit(item);
   };
 
+  // Filter items based on search query
   const filteredItems = items.filter((item) =>
     item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.stockCode.toLowerCase().includes(searchQuery.toLowerCase())
