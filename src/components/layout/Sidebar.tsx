@@ -1,8 +1,15 @@
-import { Home, Package, ShoppingCart, Users } from "lucide-react";
+import { Home, Package, ShoppingCart, Users, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-export const Sidebar = () => {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   const menuItems = [
     { icon: Home, label: "Dashboard", path: "/" },
@@ -11,14 +18,23 @@ export const Sidebar = () => {
     { icon: Users, label: "Customers", path: "/customers" },
   ];
 
+  const sidebarClasses = `fixed inset-y-0 left-0 z-40 w-64 transform border-r border-gray-200 bg-white p-4 transition-transform duration-300 ease-in-out ${
+    isOpen || !isMobile ? "translate-x-0" : "-translate-x-full"
+  } md:translate-x-0`;
+
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 -translate-x-full border-r border-gray-200 bg-white p-4 transition-transform md:translate-x-0">
-      <div className="flex h-full flex-col justify-between">
-        <div>
-          <div className="mb-8 flex items-center">
+    <>
+      <aside className={sidebarClasses}>
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between">
             <h1 className="text-xl font-semibold">Stock Manager</h1>
+            {isMobile && (
+              <button onClick={onClose} className="md:hidden">
+                <X className="h-6 w-6" />
+              </button>
+            )}
           </div>
-          <nav className="space-y-2">
+          <nav className="mt-8 space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
@@ -26,6 +42,7 @@ export const Sidebar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={isMobile ? onClose : undefined}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
                     isActive
                       ? "bg-gray-100 text-gray-900"
@@ -39,7 +56,13 @@ export const Sidebar = () => {
             })}
           </nav>
         </div>
-      </div>
-    </aside>
+      </aside>
+      {isMobile && isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
+          onClick={onClose}
+        />
+      )}
+    </>
   );
 };

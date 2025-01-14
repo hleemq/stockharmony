@@ -39,8 +39,34 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+    height: -webkit-fill-available;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
+    min-height: -webkit-fill-available;
+    height: 100%;
+  }
+
+  /* iOS Safari specific styles */
+  @supports (-webkit-touch-callout: none) {
+    .min-h-screen {
+      min-height: -webkit-fill-available;
+    }
+  }
+
+  /* Prevent pull-to-refresh on iOS */
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Remove iOS input shadows */
+  input,
+  textarea {
+    -webkit-appearance: none;
+    appearance: none;
   }
 
   .glass-card {
