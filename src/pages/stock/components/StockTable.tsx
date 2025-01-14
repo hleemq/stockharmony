@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -11,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Search, Trash2 } from "lucide-react";
 import { StockItem } from "@/types/stock";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StockTableProps {
   items: StockItem[];
@@ -20,11 +23,39 @@ interface StockTableProps {
 }
 
 export function StockTable({ items, isLoading, onEdit, onDelete }: StockTableProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
   const getStockStatus = (available: number) => {
     if (available <= 0) return "Out of Stock";
     if (available < 10) return "Low Stock";
     return "In Stock";
   };
+
+  const handleDelete = async (item: StockItem) => {
+    try {
+      const { error } = await supabase
+        .from('inventory_items')
+        .delete()
+        .eq('sku', item.stockCode);
+
+      if (error) throw error;
+
+      toast.success("Item deleted successfully");
+      if (onDelete) onDelete(item);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast.error("Failed to delete item");
+    }
+  };
+
+  const handleEdit = (item: StockItem) => {
+    if (onEdit) onEdit(item);
+  };
+
+  const filteredItems = items.filter((item) =>
+    item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.stockCode.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (isLoading) {
     return (
@@ -72,9 +103,11 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
         <Input
           placeholder="Search items..."
           className="pl-10 w-full md:max-w-sm"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -91,7 +124,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <TableRow key={item.stockCode}>
                 <TableCell className="font-medium">{item.stockCode}</TableCell>
                 <TableCell>{item.productName}</TableCell>
@@ -117,7 +150,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onEdit?.(item)}
+                      onClick={() => handleEdit(item)}
                       className="h-8 w-8"
                     >
                       <Edit2 className="h-4 w-4" />
@@ -125,7 +158,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onDelete?.(item)}
+                      onClick={() => handleDelete(item)}
                       className="h-8 w-8 text-red-500 hover:text-red-700"
                     >
                       <Trash2 className="h-4 w-4" />

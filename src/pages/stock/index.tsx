@@ -45,7 +45,10 @@ export default function StockPage() {
           unit_price,
           warehouse_id,
           image_url,
-          total_quantity
+          total_quantity,
+          warehouses (
+            name
+          )
         `);
 
       if (error) {
@@ -61,7 +64,7 @@ export default function StockPage() {
         boughtPrice: item.price,
         initialPrice: item.price,
         sellingPrice: item.unit_price || 0,
-        location: item.warehouse_id || '',
+        location: item.warehouses?.name || '',
         imageUrl: item.image_url,
         stockAvailable: item.total_quantity
       }));
@@ -107,10 +110,20 @@ export default function StockPage() {
 
       setItems(prevItems => [...prevItems, newItem]);
       toast.success('Stock item added successfully');
+      setShowAddForm(false);
     } catch (error) {
       console.error('Error adding stock item:', error);
       toast.error('Failed to add stock item');
     }
+  };
+
+  const handleEditItem = (item: StockItem) => {
+    // Implement edit functionality
+    toast.info("Edit functionality coming soon");
+  };
+
+  const handleDeleteItem = (deletedItem: StockItem) => {
+    setItems(prevItems => prevItems.filter(item => item.stockCode !== deletedItem.stockCode));
   };
 
   return (
@@ -128,7 +141,12 @@ export default function StockPage() {
         </Button>
       </div>
 
-      <StockTable items={items} isLoading={isLoading} />
+      <StockTable 
+        items={items} 
+        isLoading={isLoading} 
+        onEdit={handleEditItem}
+        onDelete={handleDeleteItem}
+      />
 
       <AddStockForm 
         open={showAddForm} 
