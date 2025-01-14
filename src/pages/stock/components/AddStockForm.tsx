@@ -1,279 +1,152 @@
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Upload } from "lucide-react";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { StockItem } from "@/types/stock";
-import { toast } from "sonner";
+import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Using proper UUIDs for warehouse IDs
-const warehouses = [
-  { id: "550e8400-e29b-41d4-a716-446655440000", name: "Depot Sbit", location: "Location 1" },
-  { id: "6ba7b810-9dad-11d1-80b4-00c04fd430c8", name: "Showroom", location: "Location 2" },
-];
-
-const formSchema = z.object({
-  stockCode: z.string().min(1, "Stock code is required"),
-  productName: z.string().min(1, "Product name is required"),
-  boxes: z.string().min(1, "Number of boxes is required"),
-  unitsPerBox: z.string().min(1, "Units per box is required"),
-  shipmentFees: z.string().min(1, "Shipment fees are required"),
-  boughtPrice: z.string().min(1, "Bought price is required"),
-  sellingPrice: z.string().min(1, "Selling price is required"),
-  location: z.string().min(1, "Location is required"),
-});
+interface Warehouse {
+  id: string;
+  name: string;
+  location: string;
+}
 
 interface AddStockFormProps {
   open: boolean;
   onClose: () => void;
   onAddItem: (item: StockItem) => void;
+  warehouses: Warehouse[];
 }
 
-export function AddStockForm({ open, onClose, onAddItem }: AddStockFormProps) {
-  const [imageFile, setImageFile] = useState<File | null>(null);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      stockCode: "",
-      productName: "",
-      boxes: "",
-      unitsPerBox: "",
-      shipmentFees: "",
-      boughtPrice: "",
-      sellingPrice: "",
-      location: "",
-    },
+export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockFormProps) {
+  const [formData, setFormData] = useState<StockItem>({
+    stockCode: "",
+    productName: "",
+    boxes: 0,
+    unitsPerBox: 0,
+    shipmentFees: 0,
+    boughtPrice: 0,
+    initialPrice: 0,
+    sellingPrice: 0,
+    location: "",
+    stockAvailable: 0,
   });
 
-  const calculateInitialPrice = (shipmentFees: string, boughtPrice: string) => {
-    const fees = parseFloat(shipmentFees) || 0;
-    const price = parseFloat(boughtPrice) || 0;
-    return fees + price;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAddItem(formData);
   };
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const initialPrice = calculateInitialPrice(values.shipmentFees, values.boughtPrice);
-    const boxes = parseInt(values.boxes) || 0;
-    const unitsPerBox = parseInt(values.unitsPerBox) || 0;
-    
-    const newItem: StockItem = {
-      stockCode: values.stockCode,
-      productName: values.productName,
-      boxes: boxes,
-      unitsPerBox: unitsPerBox,
-      shipmentFees: parseFloat(values.shipmentFees),
-      boughtPrice: parseFloat(values.boughtPrice),
-      initialPrice,
-      sellingPrice: parseFloat(values.sellingPrice),
-      location: values.location,
-      imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
-      stockAvailable: boxes * unitsPerBox,
-    };
-    
-    onAddItem(newItem);
-    onClose();
-    form.reset();
-    setImageFile(null);
-  }
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-    }
+  const handleChange = (field: keyof StockItem, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Stock Item</DialogTitle>
-          <DialogDescription>
-            Fill in the details to add a new item to your inventory
-          </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="stockCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Stock Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter stock code" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="productName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Product Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter product name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="boxes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Boxes</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="Enter number of boxes" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="unitsPerBox"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Units per Box</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="Enter units per box" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="shipmentFees"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Shipment Fees</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter shipment fees"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="boughtPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bought Price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter bought price"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="sellingPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Selling Price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter selling price"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select warehouse" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {warehouses.map((warehouse) => (
-                          <SelectItem key={warehouse.id} value={warehouse.id}>
-                            {warehouse.name} - {warehouse.location}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="stockCode">Stock Code</Label>
+              <Input
+                id="stockCode"
+                value={formData.stockCode}
+                onChange={(e) => handleChange("stockCode", e.target.value)}
+                required
               />
             </div>
-
-            <div className="flex justify-center">
-              <Button type="button" variant="outline" className="w-full max-w-md" onClick={() => document.getElementById('image-upload')?.click()}>
-                <Upload className="mr-2" />
-                Upload Image
-                <input
-                  id="image-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </Button>
+            <div className="grid gap-2">
+              <Label htmlFor="productName">Product Name</Label>
+              <Input
+                id="productName"
+                value={formData.productName}
+                onChange={(e) => handleChange("productName", e.target.value)}
+                required
+              />
             </div>
-
-            {imageFile && (
-              <p className="text-sm text-muted-foreground text-center">
-                Selected file: {imageFile.name}
-              </p>
-            )}
-
-            <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit">Add Item</Button>
+            <div className="grid gap-2">
+              <Label htmlFor="boxes">Boxes</Label>
+              <Input
+                id="boxes"
+                type="number"
+                value={formData.boxes}
+                onChange={(e) => handleChange("boxes", parseInt(e.target.value))}
+                required
+              />
             </div>
-          </form>
-        </Form>
+            <div className="grid gap-2">
+              <Label htmlFor="unitsPerBox">Units Per Box</Label>
+              <Input
+                id="unitsPerBox"
+                type="number"
+                value={formData.unitsPerBox}
+                onChange={(e) => handleChange("unitsPerBox", parseInt(e.target.value))}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="boughtPrice">Bought Price</Label>
+              <Input
+                id="boughtPrice"
+                type="number"
+                value={formData.boughtPrice}
+                onChange={(e) => handleChange("boughtPrice", parseFloat(e.target.value))}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="sellingPrice">Selling Price</Label>
+              <Input
+                id="sellingPrice"
+                type="number"
+                value={formData.sellingPrice}
+                onChange={(e) => handleChange("sellingPrice", parseFloat(e.target.value))}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="location">Warehouse</Label>
+              <Select 
+                value={formData.location} 
+                onValueChange={(value) => handleChange("location", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select warehouse" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.map((warehouse) => (
+                    <SelectItem key={warehouse.id} value={warehouse.name}>
+                      {warehouse.name} ({warehouse.location})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="stockAvailable">Stock Available</Label>
+              <Input
+                id="stockAvailable"
+                type="number"
+                value={formData.stockAvailable}
+                onChange={(e) => handleChange("stockAvailable", parseInt(e.target.value))}
+                required
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">Add Item</Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

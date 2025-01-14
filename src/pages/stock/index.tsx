@@ -8,14 +8,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
+interface Warehouse {
+  id: string;
+  name: string;
+  location: string;
+}
+
 export default function StockPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [items, setItems] = useState<StockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     checkUser();
+    fetchWarehouses();
     fetchStockItems();
   }, []);
 
@@ -25,6 +33,23 @@ export default function StockPage() {
       toast.error("Please login to access this page");
       navigate("/login");
       return;
+    }
+  };
+
+  const fetchWarehouses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('warehouses')
+        .select('id, name, location');
+
+      if (error) {
+        throw error;
+      }
+
+      setWarehouses(data || []);
+    } catch (error) {
+      console.error('Error fetching warehouses:', error);
+      toast.error('Failed to load warehouses');
     }
   };
 
@@ -60,7 +85,7 @@ export default function StockPage() {
         productName: item.name,
         boxes: item.box_count || 0,
         unitsPerBox: item.quantity_per_box,
-        shipmentFees: 0, // Add this to the database if needed
+        shipmentFees: 0,
         boughtPrice: item.price,
         initialPrice: item.price,
         sellingPrice: item.unit_price || 0,
@@ -86,6 +111,13 @@ export default function StockPage() {
         return;
       }
 
+      // Find warehouse ID based on location name
+      const warehouse = warehouses.find(w => w.name === newItem.location);
+      if (!warehouse) {
+        toast.error("Please select a valid warehouse");
+        return;
+      }
+
       const { data, error } = await supabase
         .from('inventory_items')
         .insert([{
@@ -95,7 +127,7 @@ export default function StockPage() {
           quantity_per_box: newItem.unitsPerBox,
           price: newItem.boughtPrice,
           unit_price: newItem.sellingPrice,
-          warehouse_id: newItem.location,
+          warehouse_id: warehouse.id,
           image_url: newItem.imageUrl,
           total_quantity: newItem.stockAvailable,
           size: 'default',
@@ -118,13 +150,12 @@ export default function StockPage() {
   };
 
   const handleEditItem = (item: StockItem) => {
-    // Implement edit functionality
     toast.info("Edit functionality coming soon");
   };
 
   const handleDeleteItem = async (deletedItem: StockItem) => {
     setItems(prevItems => prevItems.filter(item => item.stockCode !== deletedItem.stockCode));
-    await fetchStockItems(); // Refresh the list after deletion
+    await fetchStockItems();
   };
 
   return (
@@ -153,6 +184,7 @@ export default function StockPage() {
         open={showAddForm} 
         onClose={() => setShowAddForm(false)} 
         onAddItem={handleAddItem}
+        warehouses={warehouses}
       />
     </div>
   );
