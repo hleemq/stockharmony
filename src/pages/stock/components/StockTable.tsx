@@ -33,14 +33,45 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
 
   const handleDelete = async (item: StockItem) => {
     try {
-      const { error } = await supabase
+      // First, get the inventory item ID using the SKU
+      const { data: inventoryItem, error: fetchError } = await supabase
+        .from('inventory_items')
+        .select('id')
+        .eq('sku', item.stockCode)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching inventory item:', fetchError);
+        toast.error("Failed to fetch item details");
+        return;
+      }
+
+      if (!inventoryItem?.id) {
+        toast.error("Item not found");
+        return;
+      }
+
+      // First delete related order items
+      const { error: orderItemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('item_id', inventoryItem.id);
+
+      if (orderItemsError) {
+        console.error('Error deleting order items:', orderItemsError);
+        toast.error("Failed to delete related orders");
+        return;
+      }
+
+      // Then delete the inventory item
+      const { error: deleteError } = await supabase
         .from('inventory_items')
         .delete()
         .eq('sku', item.stockCode);
 
-      if (error) {
-        console.error('Error deleting item:', error);
-        toast.error("Failed to delete item: " + error.message);
+      if (deleteError) {
+        console.error('Error deleting item:', deleteError);
+        toast.error("Failed to delete item: " + deleteError.message);
         return;
       }
 
