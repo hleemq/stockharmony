@@ -38,7 +38,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
         .from('inventory_items')
         .select('id')
         .eq('sku', item.stockCode)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
         console.error('Error fetching inventory item:', fetchError);
@@ -51,7 +51,19 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
         return;
       }
 
-      // First delete related order items
+      // Delete related analytics records first
+      const { error: analyticsError } = await supabase
+        .from('inventory_analytics')
+        .delete()
+        .eq('item_id', inventoryItem.id);
+
+      if (analyticsError) {
+        console.error('Error deleting analytics:', analyticsError);
+        toast.error("Failed to delete related analytics");
+        return;
+      }
+
+      // Delete related order items
       const { error: orderItemsError } = await supabase
         .from('order_items')
         .delete()
@@ -63,11 +75,11 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
         return;
       }
 
-      // Then delete the inventory item
+      // Finally delete the inventory item
       const { error: deleteError } = await supabase
         .from('inventory_items')
         .delete()
-        .eq('sku', item.stockCode);
+        .eq('id', inventoryItem.id);
 
       if (deleteError) {
         console.error('Error deleting item:', deleteError);
