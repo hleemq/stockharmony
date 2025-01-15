@@ -66,9 +66,10 @@ export default function ProductSearchResults({
       }
 
       const stockItems: StockItem[] = data.map(item => ({
+        id: item.id,
         stockCode: item.sku,
         productName: item.name,
-        boxes: 0, // Not needed for order display
+        boxes: 0,
         unitsPerBox: 1,
         shipmentFees: 0,
         boughtPrice: 0,

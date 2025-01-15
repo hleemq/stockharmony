@@ -83,6 +83,7 @@ export default function StockPage() {
       }
 
       const stockItems: StockItem[] = data.map(item => ({
+        id: item.id,
         stockCode: item.sku,
         productName: item.name,
         boxes: item.box_count || 0,
