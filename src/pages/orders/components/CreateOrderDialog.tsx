@@ -85,13 +85,14 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         return sum + (price * product.orderQuantity);
       }, 0);
 
-      // Create order
+      // Create order with order_number
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
           customer_id: customerData.id,
           total_amount: totalAmount,
-          status: "pending"
+          status: "pending",
+          order_number: orderNumber // Adding required order_number field
         })
         .select()
         .single();
@@ -101,7 +102,7 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
       // Create order items
       const orderItems = selectedProducts.map(product => ({
         order_id: orderData.id,
-        item_id: product.id,
+        item_id: product.id, // Now using the id field from OrderProduct
         quantity: product.orderQuantity,
         unit_price: product.applyDiscount 
           ? product.sellingPrice * (1 - product.discountPercentage / 100)

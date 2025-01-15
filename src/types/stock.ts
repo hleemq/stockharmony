@@ -1,4 +1,5 @@
 export interface StockItem {
+  id: string; // Adding id field
   stockCode: string;
   productName: string;
   boxes: number;
