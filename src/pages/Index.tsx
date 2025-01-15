@@ -1,63 +1,51 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Package, ShoppingCart, Users, TrendingUp } from "lucide-react";
+import { Package, TrendingUp, DollarSign, LineChart, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Index = () => {
   const { toast } = useToast();
   const [dashboardData, setDashboardData] = useState({
-    totalStock: 0,
-    activeOrders: 0,
-    customers: 0,
+    totalStockCost: 0,
+    totalStockValue: 0,
     revenue: 0,
-    stockTrend: "0%",
-    ordersTrend: "0%",
-    customersTrend: "0%",
-    revenueTrend: "0%"
+    growth: 0,
+    revenueData: [] as { date: string; amount: number }[]
   });
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch total stock
+      // Fetch inventory items for stock values
       const { data: stockData, error: stockError } = await supabase
         .from("inventory_items")
-        .select("total_quantity");
+        .select("total_quantity, price, shipmentFees");
       
       if (stockError) throw stockError;
       
-      const totalStock = stockData.reduce((sum, item) => sum + item.total_quantity, 0);
-
-      // Fetch active orders
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("status", "pending");
+      const totalStockCost = stockData.reduce((sum, item) => 
+        sum + (item.total_quantity * item.price) + (item.shipmentFees || 0), 0);
       
-      if (ordersError) throw ordersError;
+      const totalStockValue = stockData.reduce((sum, item) => 
+        sum + (item.total_quantity * (item.price * 1.3)), 0); // Assuming 30% markup
 
-      // Fetch customers
-      const { data: customersData, error: customersError } = await supabase
-        .from("customers")
-        .select("*");
-      
-      if (customersError) throw customersError;
-
-      // Calculate revenue (from completed orders in the last 30 days)
+      // Fetch revenue data for the last 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       const { data: revenueData, error: revenueError } = await supabase
         .from("orders")
-        .select("total_amount")
+        .select("total_amount, created_at")
         .eq("status", "completed")
         .gte("created_at", thirtyDaysAgo.toISOString());
       
       if (revenueError) throw revenueError;
 
-      const totalRevenue = revenueData.reduce((sum, order) => sum + order.total_amount, 0);
+      const revenue = revenueData.reduce((sum, order) => sum + order.total_amount, 0);
 
-      // Calculate trends (comparing with previous 30 days)
+      // Calculate previous month's revenue for growth comparison
       const sixtyDaysAgo = new Date();
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
       
@@ -69,17 +57,26 @@ const Index = () => {
         .lt("created_at", thirtyDaysAgo.toISOString());
 
       const previousRevenue = previousRevenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
-      const revenueTrend = previousRevenue ? ((totalRevenue - previousRevenue) / previousRevenue * 100).toFixed(1) : "0";
+      const growth = previousRevenue ? ((revenue - previousRevenue) / previousRevenue * 100) : 0;
+
+      // Prepare chart data
+      const revenueByDay = revenueData.reduce((acc: Record<string, number>, order) => {
+        const date = new Date(order.created_at).toISOString().split('T')[0];
+        acc[date] = (acc[date] || 0) + order.total_amount;
+        return acc;
+      }, {});
+
+      const chartData = Object.entries(revenueByDay).map(([date, amount]) => ({
+        date,
+        amount
+      })).sort((a, b) => a.date.localeCompare(b.date));
 
       setDashboardData({
-        totalStock,
-        activeOrders: ordersData.length,
-        customers: customersData.length,
-        revenue: totalRevenue,
-        stockTrend: "+2.5%", // This would need inventory history to calculate accurately
-        ordersTrend: "+3.2%", // This would need order history to calculate accurately
-        customersTrend: "+2.4%", // This would need customer history to calculate accurately
-        revenueTrend: `${revenueTrend}%`
+        totalStockCost,
+        totalStockValue,
+        revenue,
+        growth,
+        revenueData: chartData
       });
 
     } catch (error) {
@@ -92,73 +89,147 @@ const Index = () => {
     }
   };
 
+  // Set up real-time subscription
   useEffect(() => {
     fetchDashboardData();
-    // Set up a refresh interval (every 5 minutes)
-    const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+
+    const ordersChannel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => fetchDashboardData()
+      )
+      .subscribe();
+
+    const inventoryChannel = supabase
+      .channel('inventory-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inventory_items' },
+        () => fetchDashboardData()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(inventoryChannel);
+    };
   }, []);
 
   const stats = [
     {
-      title: "Total Stock",
-      value: dashboardData.totalStock.toLocaleString(),
+      title: "Total Stock Cost",
+      value: `$${dashboardData.totalStockCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: Package,
-      trend: dashboardData.stockTrend,
+      description: "Including purchase price & shipping",
     },
     {
-      title: "Active Orders",
-      value: dashboardData.activeOrders.toLocaleString(),
-      icon: ShoppingCart,
-      trend: dashboardData.ordersTrend,
-    },
-    {
-      title: "Customers",
-      value: dashboardData.customers.toLocaleString(),
-      icon: Users,
-      trend: dashboardData.customersTrend,
+      title: "Total Stock Value",
+      value: `$${dashboardData.totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      description: "Potential revenue at selling price",
     },
     {
       title: "Revenue (30d)",
-      value: `$${dashboardData.revenue.toLocaleString()}`,
+      value: `$${dashboardData.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: TrendingUp,
-      trend: dashboardData.revenueTrend,
+      description: "Last 30 days",
+    },
+    {
+      title: "Growth",
+      value: `${dashboardData.growth.toFixed(1)}%`,
+      icon: ArrowUpRight,
+      description: "Compared to previous month",
+      trend: dashboardData.growth >= 0 ? "positive" : "negative",
     },
   ];
 
   return (
-    <div className="container mx-auto p-6 pt-20 md:pl-72">
+    <div className="container mx-auto p-6 space-y-8">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-gray-500">Welcome back to your stock management</p>
+        <p className="text-gray-500">Real-time business overview</p>
       </div>
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
-          const isPositiveTrend = !stat.trend.startsWith('-');
+          const isTrend = stat.hasOwnProperty('trend');
           
           return (
             <Card key={stat.title} className="p-6 glass-card animate-enter">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">{stat.title}</p>
-                  <h3 className="text-2xl font-semibold">{stat.value}</h3>
-                </div>
+              <div className="flex items-center justify-between mb-4">
                 <div className="rounded-full bg-gray-100 p-3">
                   <Icon className="h-6 w-6" />
                 </div>
+                {isTrend && (
+                  <span className={`text-sm px-2 py-1 rounded ${
+                    stat.trend === 'positive' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {stat.value}
+                  </span>
+                )}
               </div>
-              <div className="mt-4">
-                <span className={`text-sm ${isPositiveTrend ? 'text-green-500' : 'text-red-500'}`}>
-                  {stat.trend}
-                </span>
-                <span className="text-sm text-gray-500"> vs last month</span>
+              <div>
+                <p className="text-sm text-gray-500">{stat.title}</p>
+                {!isTrend && <h3 className="text-2xl font-semibold mt-1">{stat.value}</h3>}
+                <p className="text-sm text-gray-500 mt-2">{stat.description}</p>
               </div>
             </Card>
           );
         })}
       </div>
+
+      <Card className="p-6 glass-card">
+        <h2 className="text-lg font-semibold mb-4">Revenue Trends</h2>
+        <div className="h-[400px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={dashboardData.revenueData}>
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="date" 
+                tick={{ fontSize: 12 }}
+                tickFormatter={(value) => new Date(value).toLocaleDateString()}
+              />
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickFormatter={(value) => `$${value.toLocaleString()}`}
+              />
+              <Tooltip 
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-white p-3 border rounded shadow-lg">
+                        <p className="text-sm text-gray-600">
+                          {new Date(label).toLocaleDateString()}
+                        </p>
+                        <p className="text-sm font-semibold">
+                          ${payload[0].value.toLocaleString()}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="amount"
+                stroke="#3b82f6"
+                fillOpacity={1}
+                fill="url(#colorRevenue)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
     </div>
   );
 };
