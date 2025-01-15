@@ -90,14 +90,28 @@ export function WarehouseManagement() {
     setShowAddDialog(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, itemCount: number) => {
     try {
+      // Check if warehouse has items
+      if (itemCount > 0) {
+        toast.error("Cannot delete warehouse with existing items. Please move or remove the items first.");
+        return;
+      }
+
       const { error } = await supabase
         .from("warehouses")
         .delete()
         .eq("id", id);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "23503") {
+          toast.error("Cannot delete warehouse that contains items. Please remove all items first.");
+        } else {
+          throw error;
+        }
+        return;
+      }
+
       toast.success("Warehouse deleted successfully");
       fetchWarehouses();
     } catch (error) {
@@ -142,7 +156,7 @@ export function WarehouseManagement() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => handleDelete(warehouse.id)}
+                  onClick={() => handleDelete(warehouse.id, warehouse.item_count)}
                 >
                   Delete
                 </Button>
