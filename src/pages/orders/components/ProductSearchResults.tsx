@@ -1,32 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StockItem } from "@/types/stock";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ProductSearchResultsProps {
   searchQuery: string;
   onAddToOrder: (product: StockItem, quantity: number, discountPercentage: number) => void;
   selectedProducts: (StockItem & { orderQuantity: number; discountPercentage: number })[];
 }
-
-// Mock data - replace with actual data fetching
-const mockProducts: StockItem[] = [
-  {
-    stockCode: "PRD001",
-    productName: "Product 1",
-    boxes: 10,
-    unitsPerBox: 20,
-    shipmentFees: 50,
-    boughtPrice: 100,
-    initialPrice: 150,
-    sellingPrice: 200,
-    location: "Warehouse A",
-    stockAvailable: 200
-  },
-  // Add more mock products as needed
-];
 
 const discountOptions = [
   { value: "0", label: "No Discount" },
@@ -43,11 +28,64 @@ export default function ProductSearchResults({
 }: ProductSearchResultsProps) {
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
   const [discounts, setDiscounts] = useState<{ [key: string]: number }>({});
+  const [products, setProducts] = useState<StockItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredProducts = mockProducts.filter(product =>
-    product.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.stockCode.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery) {
+      fetchProducts();
+    }
+  }, [searchQuery]);
+
+  const fetchProducts = async () => {
+    try {
+      setIsLoading(true);
+      let query = supabase
+        .from('inventory_items')
+        .select(`
+          id,
+          name,
+          sku,
+          total_quantity,
+          unit_price,
+          status
+        `);
+
+      if (searchQuery) {
+        query = query.or(`name.ilike.%${searchQuery}%,sku.ilike.%${searchQuery}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      const stockItems: StockItem[] = data.map(item => ({
+        stockCode: item.sku,
+        productName: item.name,
+        boxes: 0, // Not needed for order display
+        unitsPerBox: 1,
+        shipmentFees: 0,
+        boughtPrice: 0,
+        initialPrice: item.unit_price,
+        sellingPrice: item.unit_price,
+        location: '',
+        stockAvailable: item.total_quantity
+      }));
+
+      setProducts(stockItems);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleQuantityChange = (stockCode: string, value: string) => {
     const quantity = parseInt(value) || 0;
@@ -67,6 +105,10 @@ export default function ProductSearchResults({
     }
   };
 
+  if (isLoading) {
+    return <div className="text-center py-4">Loading products...</div>;
+  }
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -82,57 +124,65 @@ export default function ProductSearchResults({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredProducts.map((product) => (
-            <TableRow key={product.stockCode}>
-              <TableCell>{product.productName}</TableCell>
-              <TableCell>{product.stockCode}</TableCell>
-              <TableCell>{product.stockAvailable}</TableCell>
-              <TableCell className="w-32">
-                <Input
-                  type="number"
-                  min="1"
-                  max={product.stockAvailable}
-                  value={quantities[product.stockCode] || ""}
-                  onChange={(e) => handleQuantityChange(product.stockCode, e.target.value)}
-                  disabled={selectedProducts.some(p => p.stockCode === product.stockCode)}
-                />
-              </TableCell>
-              <TableCell>${product.sellingPrice}</TableCell>
-              <TableCell>
-                <Select
-                  value={String(discounts[product.stockCode] || "0")}
-                  onValueChange={(value) => handleDiscountChange(product.stockCode, value)}
-                  disabled={selectedProducts.some(p => p.stockCode === product.stockCode)}
-                >
-                  <SelectTrigger className="w-24">
-                    <SelectValue placeholder="Discount" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {discountOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSelect(product)}
-                  disabled={
-                    selectedProducts.some(p => p.stockCode === product.stockCode) ||
-                    !quantities[product.stockCode] ||
-                    quantities[product.stockCode] <= 0 ||
-                    quantities[product.stockCode] > product.stockAvailable
-                  }
-                >
-                  Select
-                </Button>
+          {products.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center">
+                No products found
               </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            products.map((product) => (
+              <TableRow key={product.stockCode}>
+                <TableCell>{product.productName}</TableCell>
+                <TableCell>{product.stockCode}</TableCell>
+                <TableCell>{product.stockAvailable}</TableCell>
+                <TableCell className="w-32">
+                  <Input
+                    type="number"
+                    min="1"
+                    max={product.stockAvailable}
+                    value={quantities[product.stockCode] || ""}
+                    onChange={(e) => handleQuantityChange(product.stockCode, e.target.value)}
+                    disabled={selectedProducts.some(p => p.stockCode === product.stockCode)}
+                  />
+                </TableCell>
+                <TableCell>${product.sellingPrice}</TableCell>
+                <TableCell>
+                  <Select
+                    value={String(discounts[product.stockCode] || "0")}
+                    onValueChange={(value) => handleDiscountChange(product.stockCode, value)}
+                    disabled={selectedProducts.some(p => p.stockCode === product.stockCode)}
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue placeholder="Discount" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {discountOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSelect(product)}
+                    disabled={
+                      selectedProducts.some(p => p.stockCode === product.stockCode) ||
+                      !quantities[product.stockCode] ||
+                      quantities[product.stockCode] <= 0 ||
+                      quantities[product.stockCode] > product.stockAvailable
+                    }
+                  >
+                    Select
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>
