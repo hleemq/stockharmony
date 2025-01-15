@@ -5,6 +5,7 @@ import StockPage from "./pages/stock";
 import OrdersPage from "./pages/orders";
 import CustomersPage from "./pages/customers";
 import LoginPage from "./pages/login";
+import DashboardPage from "./pages/Index";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
@@ -74,11 +75,11 @@ function App() {
           <main className="flex-1 content-padding pt-20 md:ml-64">
             <div className="table-container">
               <Routes>
-                <Route path="/" element={<Navigate to="/stock" replace />} />
+                <Route path="/" element={<DashboardPage />} />
                 <Route path="/stock" element={<StockPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
-                <Route path="/login" element={<Navigate to="/stock" replace />} />
+                <Route path="/login" element={<Navigate to="/" replace />} />
               </Routes>
             </div>
           </main>
