@@ -7,6 +7,8 @@ import { StockItem } from "@/types/stock";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { WarehouseManagement } from "./components/WarehouseManagement";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Warehouse {
   id: string;
@@ -111,7 +113,6 @@ export default function StockPage() {
         return;
       }
 
-      // Find warehouse ID based on location name
       const warehouse = warehouses.find(w => w.name === newItem.location);
       if (!warehouse) {
         toast.error("Please select a valid warehouse");
@@ -149,8 +150,41 @@ export default function StockPage() {
     }
   };
 
-  const handleEditItem = (item: StockItem) => {
-    toast.info("Edit functionality coming soon");
+  const handleEditItem = async (item: StockItem) => {
+    try {
+      const warehouse = warehouses.find(w => w.name === item.location);
+      if (!warehouse) {
+        toast.error("Please select a valid warehouse");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('inventory_items')
+        .update({
+          name: item.productName,
+          box_count: item.boxes,
+          quantity_per_box: item.unitsPerBox,
+          price: item.boughtPrice,
+          unit_price: item.sellingPrice,
+          warehouse_id: warehouse.id,
+          image_url: item.imageUrl,
+          total_quantity: item.stockAvailable
+        })
+        .eq('sku', item.stockCode);
+
+      if (error) throw error;
+      
+      setItems(prevItems => 
+        prevItems.map(prevItem => 
+          prevItem.stockCode === item.stockCode ? item : prevItem
+        )
+      );
+      
+      toast.success("Item updated successfully");
+    } catch (error) {
+      console.error('Error updating item:', error);
+      toast.error('Failed to update item');
+    }
   };
 
   const handleDeleteItem = async (deletedItem: StockItem) => {
@@ -173,12 +207,23 @@ export default function StockPage() {
         </Button>
       </div>
 
-      <StockTable 
-        items={items} 
-        isLoading={isLoading} 
-        onEdit={handleEditItem}
-        onDelete={handleDeleteItem}
-      />
+      <Tabs defaultValue="stock" className="w-full">
+        <TabsList>
+          <TabsTrigger value="stock">Stock Items</TabsTrigger>
+          <TabsTrigger value="warehouses">Warehouses</TabsTrigger>
+        </TabsList>
+        <TabsContent value="stock">
+          <StockTable 
+            items={items} 
+            isLoading={isLoading} 
+            onEdit={handleEditItem}
+            onDelete={handleDeleteItem}
+          />
+        </TabsContent>
+        <TabsContent value="warehouses">
+          <WarehouseManagement />
+        </TabsContent>
+      </Tabs>
 
       <AddStockForm 
         open={showAddForm} 
