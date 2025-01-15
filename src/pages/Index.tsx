@@ -21,12 +21,12 @@ const Index = () => {
       // Fetch inventory items for stock values
       const { data: stockData, error: stockError } = await supabase
         .from("inventory_items")
-        .select("total_quantity, price, shipment_fees");
+        .select("total_quantity, price");
       
       if (stockError) throw stockError;
       
       const totalStockCost = stockData.reduce((sum, item) => 
-        sum + (item.total_quantity * item.price) + (item.shipment_fees || 0), 0);
+        sum + (item.total_quantity * item.price), 0);
       
       const totalStockValue = stockData.reduce((sum, item) => 
         sum + (item.total_quantity * (item.price * 1.3)), 0); // Assuming 30% markup
@@ -122,7 +122,7 @@ const Index = () => {
       title: "Total Stock Cost",
       value: `$${dashboardData.totalStockCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: Package,
-      description: "Including purchase price & shipping",
+      description: "Including purchase price",
     },
     {
       title: "Total Stock Value",
