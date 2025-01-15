@@ -221,6 +221,7 @@ export type Database = {
           quantity_per_box: number
           quantity_per_unit: number
           reorder_point: number | null
+          shipment_fees: number
           size: string
           sku: string
           status: Database["public"]["Enums"]["inventory_status"]
@@ -249,6 +250,7 @@ export type Database = {
           quantity_per_box?: number
           quantity_per_unit?: number
           reorder_point?: number | null
+          shipment_fees?: number
           size: string
           sku: string
           status?: Database["public"]["Enums"]["inventory_status"]
@@ -277,6 +279,7 @@ export type Database = {
           quantity_per_box?: number
           quantity_per_unit?: number
           reorder_point?: number | null
+          shipment_fees?: number
           size?: string
           sku?: string
           status?: Database["public"]["Enums"]["inventory_status"]

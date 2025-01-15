@@ -36,7 +36,13 @@ export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockF
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAddItem(formData);
+    // Calculate initial price based on bought price and shipment fees
+    const updatedFormData = {
+      ...formData,
+      initialPrice: formData.boughtPrice + formData.shipmentFees,
+      stockAvailable: formData.boxes * formData.unitsPerBox // Set initial stock based on boxes and units
+    };
+    onAddItem(updatedFormData);
   };
 
   const handleChange = (field: keyof StockItem, value: string | number) => {
@@ -103,6 +109,16 @@ export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockF
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="shipmentFees">Shipment Fees</Label>
+              <Input
+                id="shipmentFees"
+                type="number"
+                value={formData.shipmentFees}
+                onChange={(e) => handleChange("shipmentFees", parseFloat(e.target.value))}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="sellingPrice">Selling Price</Label>
               <Input
                 id="sellingPrice"
@@ -129,16 +145,6 @@ export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockF
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="stockAvailable">Stock Available</Label>
-              <Input
-                id="stockAvailable"
-                type="number"
-                value={formData.stockAvailable}
-                onChange={(e) => handleChange("stockAvailable", parseInt(e.target.value))}
-                required
-              />
             </div>
           </div>
           <div className="flex justify-end gap-3">
