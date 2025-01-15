@@ -13,6 +13,8 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { generateOrderNumber, generateOrderPDF } from "@/utils/pdfGenerator";
 import { OrderProduct } from "@/types/stock";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const customerFormSchema = z.object({
   name: z.string().min(1, "Customer name is required"),
@@ -31,6 +33,7 @@ interface CreateOrderDialogProps {
 export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<OrderProduct[]>([]);
+  const { toast } = useToast();
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
@@ -55,22 +58,93 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
     setSelectedProducts(selectedProducts.filter((p) => p.stockCode !== stockCode));
   };
 
-  const onSubmit = (data: CustomerFormValues) => {
-    const customerDetails = {
-      name: data.name,
-      email: data.email || "",
-      phone: data.phone || "",
-      address: data.address || ""
-    };
-    
-    const orderNumber = generateOrderNumber();
-    const order = generateOrderPDF(customerDetails, selectedProducts, orderNumber);
-    
-    if (typeof window !== 'undefined' && (window as any).addOrderToTable) {
-      (window as any).addOrderToTable(order);
+  const onSubmit = async (data: CustomerFormValues) => {
+    try {
+      // First, create or update customer
+      const { data: customerData, error: customerError } = await supabase
+        .from("customers")
+        .upsert(
+          {
+            name: data.name,
+            email: data.email || null,
+            phone: data.phone || null,
+            address: data.address || null
+          },
+          { onConflict: "email" }
+        )
+        .select()
+        .single();
+
+      if (customerError) throw customerError;
+
+      const orderNumber = generateOrderNumber();
+      const totalAmount = selectedProducts.reduce((sum, product) => {
+        const price = product.applyDiscount 
+          ? product.sellingPrice * (1 - product.discountPercentage / 100)
+          : product.sellingPrice;
+        return sum + (price * product.orderQuantity);
+      }, 0);
+
+      // Create order
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          customer_id: customerData.id,
+          total_amount: totalAmount,
+          status: "pending"
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItems = selectedProducts.map(product => ({
+        order_id: orderData.id,
+        item_id: product.id,
+        quantity: product.orderQuantity,
+        unit_price: product.applyDiscount 
+          ? product.sellingPrice * (1 - product.discountPercentage / 100)
+          : product.sellingPrice,
+        total_price: product.orderQuantity * (
+          product.applyDiscount 
+            ? product.sellingPrice * (1 - product.discountPercentage / 100)
+            : product.sellingPrice
+        )
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // Generate PDF
+      const order = generateOrderPDF({
+        name: data.name,
+        email: data.email || "",
+        phone: data.phone || "",
+        address: data.address || ""
+      }, selectedProducts, orderNumber);
+      
+      if (typeof window !== 'undefined' && (window as any).addOrderToTable) {
+        (window as any).addOrderToTable(order);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Order created successfully",
+      });
+
+      onClose();
+    } catch (error) {
+      console.error("Error creating order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create order",
+        variant: "destructive"
+      });
     }
-    
-    onClose();
   };
 
   const handleOpenChange = (newOpen: boolean) => {
