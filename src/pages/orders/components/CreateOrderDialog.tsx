@@ -60,18 +60,15 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
   const onSubmit = async (data: CustomerFormValues) => {
     try {
-      // Create or update customer
+      // First, create the customer
       const { data: customerData, error: customerError } = await supabase
         .from("customers")
-        .upsert(
-          {
-            name: data.name,
-            email: data.email || null,
-            phone: data.phone || null,
-            address: data.address || null
-          },
-          { onConflict: "email" }
-        )
+        .insert({
+          name: data.name,
+          email: data.email || null,
+          phone: data.phone || null,
+          address: data.address || null
+        })
         .select()
         .single();
 
