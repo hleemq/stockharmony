@@ -108,33 +108,38 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         units: product.orderQuantity % product.unitsPerBox
       }));
 
+      console.log('Generating PDF...');
       try {
         // Generate the PDF
         const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
-        
+        console.log('PDF generated successfully');
+
         // Create a File object from the Blob with proper MIME type
         const pdfFile = new File([pdfBlob], `${orderNumber}.pdf`, { 
           type: 'application/pdf'
         });
 
+        console.log('Uploading PDF to Supabase storage...');
         // Upload PDF to storage with explicit content type
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('order_documents')
           .upload(`${orderNumber}.pdf`, pdfFile, {
             contentType: 'application/pdf',
-            upsert: true // Allow overwriting if file exists
+            upsert: true
           });
 
         if (uploadError) {
           console.error('Upload error:', uploadError);
           throw uploadError;
         }
+        console.log('PDF uploaded successfully');
 
         // Get the public URL for the uploaded file
         const { data: { publicUrl } } = supabase.storage
           .from('order_documents')
           .getPublicUrl(`${orderNumber}.pdf`);
 
+        console.log('Creating order in database...');
         // Create order with PDF URL
         const { data: orderData, error: orderError } = await supabase
           .from("orders")
