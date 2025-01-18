@@ -93,7 +93,6 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         return sum + (price * product.orderQuantity);
       }, 0);
 
-      // Generate PDF with customer details
       const customerDetails = {
         name: data.name,
         email: data.email || '',
@@ -101,7 +100,6 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         address: data.address || ''
       };
 
-      // Calculate boxes and units for each product
       const productsWithBoxes = selectedProducts.map(product => ({
         ...product,
         boxes: Math.floor(product.orderQuantity / product.unitsPerBox),
@@ -114,6 +112,29 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
         console.log('PDF generated successfully');
 
+        // First check if the file already exists and delete it if it does
+        const { data: existingFile, error: checkError } = await supabase.storage
+          .from('order_documents')
+          .list('', {
+            search: orderNumber + '.pdf'
+          });
+
+        if (checkError) {
+          console.error('Error checking existing file:', checkError);
+          throw checkError;
+        }
+
+        if (existingFile && existingFile.length > 0) {
+          const { error: deleteError } = await supabase.storage
+            .from('order_documents')
+            .remove([`${orderNumber}.pdf`]);
+
+          if (deleteError) {
+            console.error('Error deleting existing file:', deleteError);
+            throw deleteError;
+          }
+        }
+
         // Create a File object from the Blob with proper MIME type
         const pdfFile = new File([pdfBlob], `${orderNumber}.pdf`, { 
           type: 'application/pdf'
@@ -125,7 +146,7 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
           .from('order_documents')
           .upload(`${orderNumber}.pdf`, pdfFile, {
             contentType: 'application/pdf',
-            upsert: true
+            upsert: false
           });
 
         if (uploadError) {
