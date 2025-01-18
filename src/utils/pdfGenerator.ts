@@ -17,11 +17,11 @@ export const generateOrderNumber = () => {
   return `ORD-${year}${month}-${random}`;
 };
 
-export const generateOrderPDF = (
+export const generateOrderPDF = async (
   customerDetails: CustomerDetails,
   products: (OrderProduct & { boxes: number; units: number })[],
   orderNumber: string
-) => {
+): Promise<Blob> => {
   const doc = new jsPDF();
   const orderDate = new Date().toISOString();
 
@@ -104,23 +104,6 @@ export const generateOrderPDF = (
   doc.setFontSize(12);
   doc.text('ENJOY OUR PRODUCTS...', doc.internal.pageSize.width / 2, pageHeight - 20, { align: 'center' });
 
-  // Save the PDF
-  doc.save(`${orderNumber}.pdf`);
-
-  // Return order object
-  return {
-    id: orderNumber,
-    orderNumber,
-    customerName: customerDetails.name,
-    orderDate,
-    status: 'pending',
-    items: products.map(product => ({
-      id: product.stockCode,
-      productName: product.productName,
-      quantity: product.orderQuantity,
-      price: product.sellingPrice,
-      total: product.sellingPrice * product.orderQuantity * (1 - (product.applyDiscount ? product.discountPercentage / 100 : 0))
-    })),
-    totalAmount: total
-  };
+  // Return as Blob instead of saving
+  return new Blob([doc.output('blob')], { type: 'application/pdf' });
 };

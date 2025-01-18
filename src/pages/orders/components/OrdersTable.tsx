@@ -3,31 +3,94 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Order } from "@/types/order";
-import { useState } from "react";
-
-// Initialize with mock data
-const initialOrders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "ORD-001",
-    customerName: "John Doe",
-    orderDate: "2024-03-20",
-    status: "pending",
-    items: [
-      {
-        id: "1",
-        productName: "Product 1",
-        quantity: 2,
-        price: 100,
-        total: 200,
-      },
-    ],
-    totalAmount: 200,
-  },
-];
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const OrdersTable = () => {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(`
+        *,
+        customers (
+          name,
+          email,
+          phone,
+          address
+        ),
+        order_items (
+          *,
+          inventory_items (
+            name,
+            sku
+          )
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch orders",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setOrders(data || []);
+  };
+
+  const handleViewOrder = async (orderNumber: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('order_documents')
+        .download(`${orderNumber}.pdf`);
+
+      if (error) throw error;
+
+      // Create a URL for the downloaded file and open it
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download order PDF",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Order deleted successfully"
+      });
+
+      fetchOrders();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete order",
+        variant: "destructive"
+      });
+    }
+  };
 
   const getStatusColor = (status: Order["status"]) => {
     const colors = {
@@ -38,21 +101,6 @@ const OrdersTable = () => {
     };
     return colors[status];
   };
-
-  const handleViewOrder = (orderNumber: string) => {
-    // Open the PDF in a new tab
-    window.open(`${orderNumber}.pdf`, '_blank');
-  };
-
-  // Add a method to update orders
-  const addOrder = (order: Order) => {
-    setOrders(prevOrders => [order, ...prevOrders]);
-  };
-
-  // Expose the addOrder method
-  if (typeof window !== 'undefined') {
-    (window as any).addOrderToTable = addOrder;
-  }
 
   return (
     <div className="rounded-md border">
@@ -81,13 +129,22 @@ const OrdersTable = () => {
               <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
               <TableCell>
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="icon" onClick={() => handleViewOrder(order.orderNumber)}>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={() => handleViewOrder(order.orderNumber)}
+                  >
                     <FileText className="h-4 w-4" />
                   </Button>
                   <Button variant="outline" size="icon">
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" className="text-red-500">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="text-red-500"
+                    onClick={() => handleDeleteOrder(order.id)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

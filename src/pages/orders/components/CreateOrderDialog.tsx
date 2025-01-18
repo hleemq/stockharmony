@@ -58,17 +58,9 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
     setSelectedProducts(selectedProducts.filter((p) => p.stockCode !== stockCode));
   };
 
-  const calculateBoxes = (quantity: number, unitsPerBox: number) => {
-    return Math.floor(quantity / unitsPerBox);
-  };
-
-  const calculateRemainingUnits = (quantity: number, unitsPerBox: number) => {
-    return quantity % unitsPerBox;
-  };
-
   const onSubmit = async (data: CustomerFormValues) => {
     try {
-      // First, create or update customer
+      // Create or update customer
       const { data: customerData, error: customerError } = await supabase
         .from("customers")
         .upsert(
@@ -93,14 +85,32 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         return sum + (price * product.orderQuantity);
       }, 0);
 
-      // Create order with order_number
+      // Generate PDF
+      const productsWithBoxes = selectedProducts.map(product => ({
+        ...product,
+        boxes: Math.floor(product.orderQuantity / product.unitsPerBox),
+        units: product.orderQuantity % product.unitsPerBox
+      }));
+
+      const pdfBlob = await generateOrderPDF(data, productsWithBoxes, orderNumber);
+      
+      // Upload PDF to storage
+      const pdfPath = `${orderNumber}.pdf`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('order_documents')
+        .upload(pdfPath, pdfBlob);
+
+      if (uploadError) throw uploadError;
+
+      // Create order with PDF URL
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
           customer_id: customerData.id,
           total_amount: totalAmount,
           status: "pending",
-          order_number: orderNumber
+          order_number: orderNumber,
+          pdf_url: uploadData.path
         })
         .select()
         .single();
@@ -128,25 +138,6 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
       if (itemsError) throw itemsError;
 
-      // Add boxes and units calculation for PDF generation
-      const productsWithBoxes = selectedProducts.map(product => ({
-        ...product,
-        boxes: calculateBoxes(product.orderQuantity, product.unitsPerBox),
-        units: calculateRemainingUnits(product.orderQuantity, product.unitsPerBox)
-      }));
-
-      // Generate PDF with the calculated boxes and units
-      const order = generateOrderPDF({
-        name: data.name,
-        email: data.email || "",
-        phone: data.phone || "",
-        address: data.address || ""
-      }, productsWithBoxes, orderNumber);
-      
-      if (typeof window !== 'undefined' && (window as any).addOrderToTable) {
-        (window as any).addOrderToTable(order);
-      }
-      
       toast({
         title: "Success",
         description: "Order created successfully",
