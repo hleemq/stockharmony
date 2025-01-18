@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -33,6 +33,7 @@ interface CreateOrderDialogProps {
 export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<OrderProduct[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<CustomerFormValues>({
@@ -59,6 +60,16 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
   };
 
   const onSubmit = async (data: CustomerFormValues) => {
+    if (selectedProducts.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please add at least one product to the order",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       // First, create the customer
       const { data: customerData, error: customerError } = await supabase
@@ -110,8 +121,8 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .insert({
-          customer_id: customerData.id,
           order_number: orderNumber,
+          customer_id: customerData.id,
           total_amount: totalAmount,
           status: "pending",
           pdf_url: uploadData.path
@@ -147,6 +158,9 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         description: "Order created successfully",
       });
 
+      // Reset form and close dialog
+      form.reset();
+      setSelectedProducts([]);
       onClose();
     } catch (error) {
       console.error("Error creating order:", error);
@@ -155,20 +169,17 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         description: "Failed to create order",
         variant: "destructive"
       });
-    }
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      onClose();
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={(open) => !isSubmitting && !open && onClose()}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Create New Order</DialogTitle>
+          <DialogDescription>Fill in the customer details and add products to create a new order.</DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
@@ -268,8 +279,8 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
               {/* Submit Button */}
               {selectedProducts.length > 0 && (
-                <Button type="submit" className="w-full">
-                  Create Order
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating Order..." : "Create Order"}
                 </Button>
               )}
             </div>
