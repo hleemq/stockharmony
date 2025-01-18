@@ -110,10 +110,16 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
       const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
       
+      // Create a File object from the Blob with a proper name
+      const pdfFile = new File([pdfBlob], `${orderNumber}.pdf`, { type: 'application/pdf' });
+      
       // Upload PDF to storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('order_documents')
-        .upload(`${orderNumber}.pdf`, pdfBlob);
+        .upload(`${orderNumber}.pdf`, pdfFile, {
+          contentType: 'application/pdf',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
