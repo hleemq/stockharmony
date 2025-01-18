@@ -19,7 +19,7 @@ export const generateOrderNumber = () => {
 
 export const generateOrderPDF = (
   customerDetails: CustomerDetails,
-  products: OrderProduct[],
+  products: (OrderProduct & { boxes: number; units: number })[],
   orderNumber: string
 ) => {
   const doc = new jsPDF();
@@ -51,8 +51,6 @@ export const generateOrderPDF = (
 
   // Calculate table data
   const tableData = products.map(product => {
-    const boxes = Math.floor(product.orderQuantity / product.unitsPerBox);
-    const units = product.orderQuantity % product.unitsPerBox;
     const basePrice = product.sellingPrice * product.orderQuantity;
     const discountAmount = product.applyDiscount ? (basePrice * product.discountPercentage / 100) : 0;
     const finalPrice = basePrice - discountAmount;
@@ -60,8 +58,9 @@ export const generateOrderPDF = (
     return [
       product.stockCode,
       product.productName,
-      boxes.toString(),
-      units.toString(),
+      product.boxes.toString(),
+      product.units.toString(),
+      product.orderQuantity.toString(),
       `$${product.sellingPrice.toFixed(2)}`,
       product.applyDiscount ? `${product.discountPercentage}%` : '-',
       `$${finalPrice.toFixed(2)}`
@@ -82,13 +81,14 @@ export const generateOrderPDF = (
       'Product Name',
       'Boxes',
       'Units',
+      'Total Quantity',
       'Price',
       'Discount',
       'Total'
     ]],
     body: tableData,
     foot: [[
-      { content: 'Total Amount:', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: 'Total Amount:', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold' } },
       { content: `$${total.toFixed(2)}`, styles: { fontStyle: 'bold' } }
     ]],
     startY: 75,

@@ -23,9 +23,22 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
     }, 0);
   };
 
+  const calculateBoxes = (quantity: number, unitsPerBox: number) => {
+    return Math.floor(quantity / unitsPerBox);
+  };
+
+  const calculateRemainingUnits = (quantity: number, unitsPerBox: number) => {
+    return quantity % unitsPerBox;
+  };
+
   const handleExportOrder = () => {
     const orderNumber = generateOrderNumber();
-    generateOrderPDF(customerDetails, products, orderNumber);
+    const productsWithBoxes = products.map(product => ({
+      ...product,
+      boxes: calculateBoxes(product.orderQuantity, product.unitsPerBox),
+      units: calculateRemainingUnits(product.orderQuantity, product.unitsPerBox)
+    }));
+    generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
   };
 
   return (
@@ -44,7 +57,9 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
             <TableRow>
               <TableHead>Stock Code</TableHead>
               <TableHead>Product Name</TableHead>
-              <TableHead>Quantity</TableHead>
+              <TableHead>Boxes</TableHead>
+              <TableHead>Units</TableHead>
+              <TableHead>Total Quantity</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Discount</TableHead>
               <TableHead>Final Price</TableHead>
@@ -54,6 +69,8 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
           </TableHeader>
           <TableBody>
             {products.map((product) => {
+              const boxes = calculateBoxes(product.orderQuantity, product.unitsPerBox);
+              const units = calculateRemainingUnits(product.orderQuantity, product.unitsPerBox);
               const basePrice = product.sellingPrice * product.orderQuantity;
               const discountAmount = product.applyDiscount ? (basePrice * product.discountPercentage / 100) : 0;
               const finalPrice = basePrice - discountAmount;
@@ -62,6 +79,8 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
                 <TableRow key={product.stockCode}>
                   <TableCell>{product.stockCode}</TableCell>
                   <TableCell>{product.productName}</TableCell>
+                  <TableCell>{boxes}</TableCell>
+                  <TableCell>{units}</TableCell>
                   <TableCell>{product.orderQuantity}</TableCell>
                   <TableCell>${product.sellingPrice.toFixed(2)}</TableCell>
                   <TableCell>
@@ -85,7 +104,7 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
               );
             })}
             <TableRow>
-              <TableCell colSpan={6} className="text-right font-semibold">
+              <TableCell colSpan={8} className="text-right font-semibold">
                 Total Amount:
               </TableCell>
               <TableCell colSpan={2} className="font-semibold">
