@@ -58,6 +58,14 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
     setSelectedProducts(selectedProducts.filter((p) => p.stockCode !== stockCode));
   };
 
+  const calculateBoxes = (quantity: number, unitsPerBox: number) => {
+    return Math.floor(quantity / unitsPerBox);
+  };
+
+  const calculateRemainingUnits = (quantity: number, unitsPerBox: number) => {
+    return quantity % unitsPerBox;
+  };
+
   const onSubmit = async (data: CustomerFormValues) => {
     try {
       // First, create or update customer
@@ -92,7 +100,7 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
           customer_id: customerData.id,
           total_amount: totalAmount,
           status: "pending",
-          order_number: orderNumber // Adding required order_number field
+          order_number: orderNumber
         })
         .select()
         .single();
@@ -102,7 +110,7 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
       // Create order items
       const orderItems = selectedProducts.map(product => ({
         order_id: orderData.id,
-        item_id: product.id, // Now using the id field from OrderProduct
+        item_id: product.id,
         quantity: product.orderQuantity,
         unit_price: product.applyDiscount 
           ? product.sellingPrice * (1 - product.discountPercentage / 100)
@@ -120,13 +128,20 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
       if (itemsError) throw itemsError;
 
-      // Generate PDF
+      // Add boxes and units calculation for PDF generation
+      const productsWithBoxes = selectedProducts.map(product => ({
+        ...product,
+        boxes: calculateBoxes(product.orderQuantity, product.unitsPerBox),
+        units: calculateRemainingUnits(product.orderQuantity, product.unitsPerBox)
+      }));
+
+      // Generate PDF with the calculated boxes and units
       const order = generateOrderPDF({
         name: data.name,
         email: data.email || "",
         phone: data.phone || "",
         address: data.address || ""
-      }, selectedProducts, orderNumber);
+      }, productsWithBoxes, orderNumber);
       
       if (typeof window !== 'undefined' && (window as any).addOrderToTable) {
         (window as any).addOrderToTable(order);
