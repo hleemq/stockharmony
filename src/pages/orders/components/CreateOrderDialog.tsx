@@ -85,20 +85,27 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         return sum + (price * product.orderQuantity);
       }, 0);
 
-      // Generate PDF
+      // Generate PDF with customer details
+      const customerDetails = {
+        name: data.name,
+        email: data.email || '',
+        phone: data.phone || '',
+        address: data.address || ''
+      };
+
+      // Calculate boxes and units for each product
       const productsWithBoxes = selectedProducts.map(product => ({
         ...product,
         boxes: Math.floor(product.orderQuantity / product.unitsPerBox),
         units: product.orderQuantity % product.unitsPerBox
       }));
 
-      const pdfBlob = await generateOrderPDF(data, productsWithBoxes, orderNumber);
+      const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
       
       // Upload PDF to storage
-      const pdfPath = `${orderNumber}.pdf`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('order_documents')
-        .upload(pdfPath, pdfBlob);
+        .upload(`${orderNumber}.pdf`, pdfBlob);
 
       if (uploadError) throw uploadError;
 
@@ -107,9 +114,9 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         .from("orders")
         .insert({
           customer_id: customerData.id,
+          order_number: orderNumber,
           total_amount: totalAmount,
           status: "pending",
-          order_number: orderNumber,
           pdf_url: uploadData.path
         })
         .select()

@@ -56,7 +56,6 @@ const OrdersTable = () => {
 
       if (error) throw error;
 
-      // Create a URL for the downloaded file and open it
       const url = URL.createObjectURL(data);
       window.open(url, '_blank');
     } catch (error) {
@@ -118,21 +117,21 @@ const OrdersTable = () => {
         <TableBody>
           {orders.map((order) => (
             <TableRow key={order.id}>
-              <TableCell className="font-medium">{order.orderNumber}</TableCell>
-              <TableCell>{order.customerName}</TableCell>
-              <TableCell>{new Date(order.orderDate).toLocaleDateString()}</TableCell>
+              <TableCell className="font-medium">{order.order_number}</TableCell>
+              <TableCell>{order.customers?.name || 'N/A'}</TableCell>
+              <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
               <TableCell>
                 <Badge className={getStatusColor(order.status)}>
                   {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                 </Badge>
               </TableCell>
-              <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+              <TableCell>${order.total_amount?.toFixed(2) || '0.00'}</TableCell>
               <TableCell>
                 <div className="flex space-x-2">
                   <Button 
                     variant="outline" 
                     size="icon" 
-                    onClick={() => handleViewOrder(order.orderNumber)}
+                    onClick={() => handleViewOrder(order.order_number)}
                   >
                     <FileText className="h-4 w-4" />
                   </Button>
