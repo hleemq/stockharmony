@@ -108,66 +108,80 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         units: product.orderQuantity % product.unitsPerBox
       }));
 
-      const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
-      
-      // Create a File object from the Blob with a proper name
-      const pdfFile = new File([pdfBlob], `${orderNumber}.pdf`, { type: 'application/pdf' });
-      
-      // Upload PDF to storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('order_documents')
-        .upload(`${orderNumber}.pdf`, pdfFile, {
-          contentType: 'application/pdf',
-          upsert: false
+      try {
+        // Generate the PDF
+        const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
+        
+        // Create a File object from the Blob
+        const pdfFile = new File([pdfBlob], `${orderNumber}.pdf`, { type: 'application/pdf' });
+
+        // Upload PDF to storage with proper content type
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('order_documents')
+          .upload(`${orderNumber}.pdf`, pdfFile, {
+            contentType: 'application/pdf',
+            upsert: true // Allow overwriting if file exists
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw uploadError;
+        }
+
+        // Get the public URL for the uploaded file
+        const { data: { publicUrl } } = supabase.storage
+          .from('order_documents')
+          .getPublicUrl(`${orderNumber}.pdf`);
+
+        // Create order with PDF URL
+        const { data: orderData, error: orderError } = await supabase
+          .from("orders")
+          .insert({
+            order_number: orderNumber,
+            customer_id: customerData.id,
+            total_amount: totalAmount,
+            status: "pending",
+            pdf_url: publicUrl
+          })
+          .select()
+          .single();
+
+        if (orderError) throw orderError;
+
+        // Create order items
+        const orderItems = selectedProducts.map(product => ({
+          order_id: orderData.id,
+          item_id: product.id,
+          quantity: product.orderQuantity,
+          unit_price: product.applyDiscount 
+            ? product.sellingPrice * (1 - product.discountPercentage / 100)
+            : product.sellingPrice,
+          total_price: product.orderQuantity * (
+            product.applyDiscount 
+              ? product.sellingPrice * (1 - product.discountPercentage / 100)
+              : product.sellingPrice
+          )
+        }));
+
+        const { error: itemsError } = await supabase
+          .from("order_items")
+          .insert(orderItems);
+
+        if (itemsError) throw itemsError;
+
+        toast({
+          title: "Success",
+          description: "Order created successfully",
         });
 
-      if (uploadError) throw uploadError;
-
-      // Create order with PDF URL
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_number: orderNumber,
-          customer_id: customerData.id,
-          total_amount: totalAmount,
-          status: "pending",
-          pdf_url: uploadData.path
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Create order items
-      const orderItems = selectedProducts.map(product => ({
-        order_id: orderData.id,
-        item_id: product.id,
-        quantity: product.orderQuantity,
-        unit_price: product.applyDiscount 
-          ? product.sellingPrice * (1 - product.discountPercentage / 100)
-          : product.sellingPrice,
-        total_price: product.orderQuantity * (
-          product.applyDiscount 
-            ? product.sellingPrice * (1 - product.discountPercentage / 100)
-            : product.sellingPrice
-        )
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      toast({
-        title: "Success",
-        description: "Order created successfully",
-      });
-
-      // Reset form and close dialog
-      form.reset();
-      setSelectedProducts([]);
-      onClose();
+        // Reset form and close dialog
+        form.reset();
+        setSelectedProducts([]);
+        onClose();
+      } catch (error) {
+        console.error('PDF generation or upload error:', error);
+        throw error;
+      }
     } catch (error) {
       console.error("Error creating order:", error);
       toast({
