@@ -48,7 +48,8 @@ export default function OrdersTable() {
             *,
             inventory_items (
               name,
-              sku
+              sku,
+              quantity_per_box
             )
           )
         `)

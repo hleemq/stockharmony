@@ -8,9 +8,11 @@ export interface StockItem {
   boughtPrice: number;
   initialPrice: number;
   sellingPrice: number;
+  price: number;
   location: string;
   imageUrl?: string;
   stockAvailable: number;
+  quantity_per_box: number;
 }
 
 export interface OrderProduct extends StockItem {

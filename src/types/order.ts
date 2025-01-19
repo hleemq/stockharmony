@@ -8,6 +8,7 @@ export interface OrderItem {
   inventory_items?: {
     name: string;
     sku: string;
+    quantity_per_box: number;
   };
 }
 
@@ -18,8 +19,9 @@ export interface Order {
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   total_amount: number;
   created_at: string;
-  updated_at: string;
-  pdf_url?: string;
+  updated_at: string | null;
+  order_date: string;
+  pdf_url?: string | null;
   customers?: {
     name: string;
     email: string | null;

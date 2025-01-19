@@ -18,7 +18,7 @@ interface OrderSummaryProps {
 export default function OrderSummary({ products, onRemoveProduct, customerDetails }: OrderSummaryProps) {
   const calculateTotal = () => {
     return products.reduce((total, product) => {
-      const price = product.sellingPrice * product.orderQuantity;
+      const price = (product.price || 0) * product.orderQuantity;
       return total + (price - (product.applyDiscount ? (price * product.discountPercentage / 100) : 0));
     }, 0);
   };
@@ -35,8 +35,8 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
     const orderNumber = generateOrderNumber();
     const productsWithBoxes = products.map(product => ({
       ...product,
-      boxes: calculateBoxes(product.orderQuantity, product.unitsPerBox),
-      units: calculateRemainingUnits(product.orderQuantity, product.unitsPerBox)
+      boxes: calculateBoxes(product.orderQuantity, product.quantity_per_box),
+      units: calculateRemainingUnits(product.orderQuantity, product.quantity_per_box)
     }));
     generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
   };
@@ -69,9 +69,9 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
           </TableHeader>
           <TableBody>
             {products.map((product) => {
-              const boxes = calculateBoxes(product.orderQuantity, product.unitsPerBox);
-              const units = calculateRemainingUnits(product.orderQuantity, product.unitsPerBox);
-              const basePrice = product.sellingPrice * product.orderQuantity;
+              const boxes = calculateBoxes(product.orderQuantity, product.quantity_per_box);
+              const units = calculateRemainingUnits(product.orderQuantity, product.quantity_per_box);
+              const basePrice = (product.price || 0) * product.orderQuantity;
               const discountAmount = product.applyDiscount ? (basePrice * product.discountPercentage / 100) : 0;
               const finalPrice = basePrice - discountAmount;
 
@@ -82,12 +82,12 @@ export default function OrderSummary({ products, onRemoveProduct, customerDetail
                   <TableCell>{boxes}</TableCell>
                   <TableCell>{units}</TableCell>
                   <TableCell>{product.orderQuantity}</TableCell>
-                  <TableCell>${product.sellingPrice.toFixed(2)}</TableCell>
+                  <TableCell>${(product.price || 0).toFixed(2)}</TableCell>
                   <TableCell>
                     {product.applyDiscount ? `${product.discountPercentage}%` : '-'}
                   </TableCell>
                   <TableCell>
-                    ${(product.sellingPrice * (1 - (product.applyDiscount ? product.discountPercentage / 100 : 0))).toFixed(2)}
+                    ${((product.price || 0) * (1 - (product.applyDiscount ? product.discountPercentage / 100 : 0))).toFixed(2)}
                   </TableCell>
                   <TableCell>${finalPrice.toFixed(2)}</TableCell>
                   <TableCell>
