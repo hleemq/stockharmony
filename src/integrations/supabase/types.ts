@@ -64,6 +64,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string | null
+          deleted_at: string | null
           email: string | null
           id: string
           name: string
@@ -73,6 +74,7 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           id?: string
           name: string
@@ -82,6 +84,7 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string | null
+          deleted_at?: string | null
           email?: string | null
           id?: string
           name?: string
@@ -473,6 +476,7 @@ export type Database = {
           id: string
           issued_by: string | null
           notes: string | null
+          order_date: string | null
           order_number: string
           pdf_url: string | null
           status: Database["public"]["Enums"]["order_status"]
@@ -490,6 +494,7 @@ export type Database = {
           id?: string
           issued_by?: string | null
           notes?: string | null
+          order_date?: string | null
           order_number: string
           pdf_url?: string | null
           status?: Database["public"]["Enums"]["order_status"]
@@ -507,6 +512,7 @@ export type Database = {
           id?: string
           issued_by?: string | null
           notes?: string | null
+          order_date?: string | null
           order_number?: string
           pdf_url?: string | null
           status?: Database["public"]["Enums"]["order_status"]
