@@ -62,7 +62,7 @@ const CustomersTable = () => {
         ...customer,
         totalOrders: customer.orders?.length || 0,
         lastOrderDate: customer.orders?.[0]?.created_at || null,
-        status: 'active'
+        status: 'active' as const
       }));
 
       setCustomers(customersWithStats);
