@@ -36,7 +36,19 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
     discountPercentage: number;
   })[]>(
     initialData?.order_items?.map(item => ({
-      ...item.inventory_items,
+      id: item.inventory_items?.id || "",
+      stockCode: item.inventory_items?.sku || "",
+      productName: item.inventory_items?.name || "",
+      boxes: 0,
+      unitsPerBox: item.inventory_items?.quantity_per_box || 1,
+      shipmentFees: 0,
+      boughtPrice: 0,
+      initialPrice: item.unit_price,
+      sellingPrice: item.unit_price,
+      price: item.unit_price,
+      location: "",
+      stockAvailable: 0,
+      quantity_per_box: item.inventory_items?.quantity_per_box || 1,
       orderQuantity: item.quantity,
       applyDiscount: false,
       discountPercentage: 0
