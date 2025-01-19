@@ -17,11 +17,16 @@ export default function LoginPage() {
       }
       if (event === 'SIGNED_OUT') {
         setErrorMessage("");
+        // Clear any stored tokens
+        await supabase.auth.signOut();
       }
-      if (event === 'USER_UPDATED' && !session) {
+      if (event === 'TOKEN_REFRESHED' && !session) {
         const { error } = await supabase.auth.getSession();
         if (error) {
+          console.error("Session refresh error:", error);
           setErrorMessage(getErrorMessage(error));
+          // Clear invalid session
+          await supabase.auth.signOut();
         }
       }
     });
@@ -33,14 +38,22 @@ export default function LoginPage() {
   }, [navigate]);
 
   const checkUser = async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error("Error checking auth session:", error);
-      setErrorMessage(getErrorMessage(error));
-      return;
-    }
-    if (session) {
-      navigate('/stock');
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Error checking auth session:", error);
+        setErrorMessage(getErrorMessage(error));
+        // Clear invalid session
+        await supabase.auth.signOut();
+        return;
+      }
+      if (session) {
+        navigate('/stock');
+      }
+    } catch (err) {
+      console.error("Unexpected error during session check:", err);
+      setErrorMessage("An unexpected error occurred. Please try again.");
+      await supabase.auth.signOut();
     }
   };
 
@@ -51,6 +64,8 @@ export default function LoginPage() {
           return 'Invalid email or password. Please check your credentials and try again.';
         case 'Email not confirmed':
           return 'Please verify your email address before signing in.';
+        case 'Invalid Refresh Token: Refresh Token Not Found':
+          return 'Your session has expired. Please sign in again.';
         default:
           return error.message;
       }
