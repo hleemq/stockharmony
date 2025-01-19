@@ -122,6 +122,18 @@ export default function StockPage() {
         return;
       }
 
+      // Check if SKU already exists
+      const { data: existingItem } = await supabase
+        .from('inventory_items')
+        .select('id')
+        .eq('sku', newItem.stockCode)
+        .single();
+
+      if (existingItem) {
+        toast.error('An item with this SKU already exists');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('inventory_items')
         .insert([{
@@ -147,9 +159,13 @@ export default function StockPage() {
       setItems(prevItems => [...prevItems, newItem]);
       toast.success('Stock item added successfully');
       setShowAddForm(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding stock item:', error);
-      toast.error('Failed to add stock item');
+      if (error.code === '23505') {
+        toast.error('An item with this SKU already exists');
+      } else {
+        toast.error('Failed to add stock item');
+      }
     }
   };
 
