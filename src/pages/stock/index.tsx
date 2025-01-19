@@ -122,12 +122,12 @@ export default function StockPage() {
         return;
       }
 
-      // Check if SKU already exists
+      // Check if SKU already exists using maybeSingle()
       const { data: existingItem } = await supabase
         .from('inventory_items')
         .select('id')
         .eq('sku', newItem.stockCode)
-        .single();
+        .maybeSingle();
 
       if (existingItem) {
         toast.error('An item with this SKU already exists');
