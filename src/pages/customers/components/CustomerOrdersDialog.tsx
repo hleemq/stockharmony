@@ -30,11 +30,18 @@ export default function CustomerOrdersDialog({ customer, open, onClose }: Custom
         .from('orders')
         .select(`
           *,
+          customers (
+            name,
+            email,
+            phone,
+            address
+          ),
           order_items (
             *,
             inventory_items (
               name,
-              sku
+              sku,
+              quantity_per_box
             )
           )
         `)
@@ -42,7 +49,20 @@ export default function CustomerOrdersDialog({ customer, open, onClose }: Custom
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders(data);
+      
+      // Transform the data to match the Order type
+      const transformedOrders: Order[] = data.map(order => ({
+        ...order,
+        order_items: order.order_items.map(item => ({
+          ...item,
+          inventory_items: {
+            ...item.inventory_items,
+            quantity_per_box: item.inventory_items.quantity_per_box || 1
+          }
+        }))
+      }));
+      
+      setOrders(transformedOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast({

@@ -83,7 +83,7 @@ export default function OrdersTable() {
         units: item.quantity % (item.inventory_items?.quantity_per_box || 1)
       })) || [];
 
-      const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, order.order_number, new Date(order.order_date || order.created_at));
+      const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, order.order_number);
 
       // Create a URL for the blob and trigger download
       const url = window.URL.createObjectURL(pdfBlob);

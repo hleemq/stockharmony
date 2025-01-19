@@ -30,8 +30,10 @@ export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockF
     boughtPrice: 0,
     initialPrice: 0,
     sellingPrice: 0,
+    price: 0,
     location: "",
     stockAvailable: 0,
+    quantity_per_box: 1
   });
 
   const handleSubmit = (e: React.FormEvent) => {
