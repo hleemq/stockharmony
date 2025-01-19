@@ -282,6 +282,7 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
                 phone: form.getValues().phone || "",
                 address: form.getValues().address || ""
               }}
+              orderId={initialData?.id}
             />
           )}
 
