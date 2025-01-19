@@ -1,78 +1,121 @@
+import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Edit, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Order } from "@/types/order";
-import { useState, useEffect } from "react";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Order } from "@/types/order";
 import { useToast } from "@/hooks/use-toast";
+import { generateOrderPDF } from "@/utils/pdfGenerator";
+import EditOrderDialog from "./EditOrderDialog";
 
-const OrdersTable = () => {
+export default function OrdersTable() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchOrders();
+    
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => fetchOrders()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        *,
-        customers (
-          name,
-          email,
-          phone,
-          address
-        ),
-        order_items (
-          *,
-          inventory_items (
-            name,
-            sku
-          )
-        )
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch orders",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setOrders(data || []);
-  };
-
-  const handleViewOrder = async (orderNumber: string) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('order_documents')
-        .download(`${orderNumber}.pdf`);
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          customers (
+            name,
+            email,
+            phone,
+            address
+          ),
+          order_items (
+            *,
+            inventory_items (
+              name,
+              sku
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      window.open(url, '_blank');
+      setOrders(data || []);
     } catch (error) {
+      console.error('Error fetching orders:', error);
       toast({
         title: "Error",
-        description: "Failed to download order PDF",
+        description: "Failed to load orders",
         variant: "destructive"
       });
     }
   };
 
-  const handleDeleteOrder = async (orderId: string) => {
+  const handlePreviewClick = async (order: Order) => {
+    try {
+      const customerDetails = {
+        name: order.customers?.name || '',
+        email: order.customers?.email || '',
+        phone: order.customers?.phone || '',
+        address: order.customers?.address || ''
+      };
+
+      const productsWithBoxes = order.order_items?.map(item => ({
+        ...item.inventory_items,
+        orderQuantity: item.quantity,
+        boxes: Math.floor(item.quantity / (item.inventory_items?.quantity_per_box || 1)),
+        units: item.quantity % (item.inventory_items?.quantity_per_box || 1)
+      })) || [];
+
+      const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, order.order_number, new Date(order.order_date || order.created_at));
+
+      // Create a URL for the blob and trigger download
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${order.order_number}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditClick = (order: Order) => {
+    setSelectedOrder(order);
+    setShowEditDialog(true);
+  };
+
+  const handleDeleteClick = async (order: Order) => {
+    if (!confirm('Are you sure you want to delete this order?')) return;
+
     try {
       const { error } = await supabase
-        .from("orders")
+        .from('orders')
         .delete()
-        .eq('id', orderId);
+        .eq('id', order.id);
 
       if (error) throw error;
 
@@ -80,25 +123,14 @@ const OrdersTable = () => {
         title: "Success",
         description: "Order deleted successfully"
       });
-
-      fetchOrders();
     } catch (error) {
+      console.error('Error deleting order:', error);
       toast({
         title: "Error",
         description: "Failed to delete order",
         variant: "destructive"
       });
     }
-  };
-
-  const getStatusColor = (status: Order["status"]) => {
-    const colors = {
-      pending: "bg-yellow-100 text-yellow-800",
-      processing: "bg-blue-100 text-blue-800",
-      completed: "bg-green-100 text-green-800",
-      cancelled: "bg-red-100 text-red-800",
-    };
-    return colors[status];
   };
 
   return (
@@ -117,32 +149,35 @@ const OrdersTable = () => {
         <TableBody>
           {orders.map((order) => (
             <TableRow key={order.id}>
-              <TableCell className="font-medium">{order.order_number}</TableCell>
-              <TableCell>{order.customers?.name || 'N/A'}</TableCell>
-              <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+              <TableCell>{order.order_number}</TableCell>
+              <TableCell>{order.customers?.name}</TableCell>
+              <TableCell>{new Date(order.order_date || order.created_at).toLocaleDateString()}</TableCell>
+              <TableCell className="capitalize">{order.status}</TableCell>
+              <TableCell>${order.total_amount.toFixed(2)}</TableCell>
               <TableCell>
-                <Badge className={getStatusColor(order.status)}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </Badge>
-              </TableCell>
-              <TableCell>${order.total_amount?.toFixed(2) || '0.00'}</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={() => handleViewOrder(order.order_number)}
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handlePreviewClick(order)}
+                    title="Preview Order"
                   >
-                    <FileText className="h-4 w-4" />
+                    <Eye className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon">
-                    <Edit className="h-4 w-4" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditClick(order)}
+                    title="Edit Order"
+                  >
+                    <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="text-red-500"
-                    onClick={() => handleDeleteOrder(order.id)}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteClick(order)}
+                    title="Delete Order"
+                    className="text-red-500 hover:text-red-700"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -152,8 +187,17 @@ const OrdersTable = () => {
           ))}
         </TableBody>
       </Table>
+
+      {selectedOrder && (
+        <EditOrderDialog
+          open={showEditDialog}
+          onClose={() => {
+            setShowEditDialog(false);
+            setSelectedOrder(null);
+          }}
+          order={selectedOrder}
+        />
+      )}
     </div>
   );
-};
-
-export default OrdersTable;
+}
