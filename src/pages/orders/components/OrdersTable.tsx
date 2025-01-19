@@ -77,7 +77,7 @@ export default function OrdersTable() {
       };
 
       const productsWithBoxes = order.order_items?.map(item => ({
-        id: item.inventory_items?.id || "",
+        id: item.item_id,
         stockCode: item.inventory_items?.sku || "",
         productName: item.inventory_items?.name || "",
         boxes: Math.floor(item.quantity / (item.inventory_items?.quantity_per_box || 1)),

@@ -36,7 +36,7 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
     discountPercentage: number;
   })[]>(
     initialData?.order_items?.map(item => ({
-      id: item.inventory_items?.id || "",
+      id: item.item_id,
       stockCode: item.inventory_items?.sku || "",
       productName: item.inventory_items?.name || "",
       boxes: 0,
@@ -54,6 +54,7 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
       discountPercentage: 0
     })) || []
   );
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
