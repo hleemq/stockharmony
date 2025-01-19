@@ -52,6 +52,8 @@ export default function ProductSearchResults({
           sku,
           total_quantity,
           unit_price,
+          price,
+          quantity_per_box,
           status
         `);
 
@@ -75,8 +77,10 @@ export default function ProductSearchResults({
         boughtPrice: 0,
         initialPrice: item.unit_price,
         sellingPrice: item.unit_price,
+        price: item.price,
         location: '',
-        stockAvailable: item.total_quantity
+        stockAvailable: item.total_quantity,
+        quantity_per_box: item.quantity_per_box
       }));
 
       setProducts(stockItems);

@@ -78,6 +78,15 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
     setSelectedProducts(prev => prev.filter(p => p.id !== productId));
   };
 
+  const calculateTotal = () => {
+    return selectedProducts.reduce((sum, product) => {
+      const price = product.applyDiscount 
+        ? product.price * (1 - product.discountPercentage / 100)
+        : product.price;
+      return sum + (price * product.orderQuantity);
+    }, 0);
+  };
+
   const onSubmit = async (data: CustomerFormValues) => {
     if (selectedProducts.length === 0) {
       toast({
@@ -90,7 +99,6 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
 
     setIsSubmitting(true);
     try {
-      // First, create or update customer
       const { data: customerData, error: customerError } = await supabase
         .from("customers")
         .upsert({
@@ -105,29 +113,24 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
 
       if (customerError) throw customerError;
 
-      const totalAmount = selectedProducts.reduce((sum, product) => {
-        const price = product.applyDiscount 
-          ? product.price * (1 - product.discountPercentage / 100)
-          : product.price;
-        return sum + (price * product.orderQuantity);
-      }, 0);
+      const orderNumber = `ORD-${Date.now()}`;
+      const orderDate = new Date().toISOString();
 
-      // Create or update order
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .upsert({
           id: initialData?.id,
+          order_number: orderNumber,
           customer_id: customerData.id,
-          total_amount: totalAmount,
+          total_amount: calculateTotal(),
           status: initialData?.status || "pending",
-          order_date: initialData?.order_date || new Date().toISOString()
+          order_date: orderDate
         })
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      // Create order items
       const orderItems = selectedProducts.map(product => ({
         order_id: orderData.id,
         item_id: product.id,
@@ -142,7 +145,6 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
         )
       }));
 
-      // Delete existing order items if editing
       if (initialData?.id) {
         const { error: deleteError } = await supabase
           .from("order_items")
@@ -152,7 +154,6 @@ export default function OrderForm({ initialData, onComplete }: OrderFormProps) {
         if (deleteError) throw deleteError;
       }
 
-      // Insert new order items
       const { error: itemsError } = await supabase
         .from("order_items")
         .insert(orderItems);

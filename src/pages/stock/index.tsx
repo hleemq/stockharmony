@@ -92,9 +92,11 @@ export default function StockPage() {
         boughtPrice: item.price,
         initialPrice: item.price,
         sellingPrice: item.unit_price || 0,
+        price: item.price,
         location: item.warehouses?.name || '',
         imageUrl: item.image_url,
-        stockAvailable: item.total_quantity
+        stockAvailable: item.total_quantity,
+        quantity_per_box: item.quantity_per_box
       }));
 
       setItems(stockItems);
