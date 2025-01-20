@@ -49,7 +49,15 @@ export default defineConfig(({ mode }) => ({
     }
   },
   optimizeDeps: {
-    include: ['@supabase/supabase-js', 'react', 'react-dom', 'lucide-react', 'lodash', 'lodash/get'],
+    include: [
+      '@supabase/supabase-js', 
+      'react', 
+      'react-dom', 
+      'lucide-react', 
+      'lodash', 
+      'lodash/get',
+      'lodash/isNaN'
+    ],
     exclude: [
       'class-variance-authority',
       'react-hook-form',
