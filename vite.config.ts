@@ -31,7 +31,8 @@ export default defineConfig(({ mode }) => ({
             'react-router-dom',
             '@supabase/supabase-js',
             'jspdf',
-            'recharts'
+            'recharts',
+            'lodash'
           ],
           ui: [
             '@radix-ui/react-select',
@@ -48,7 +49,7 @@ export default defineConfig(({ mode }) => ({
     }
   },
   optimizeDeps: {
-    include: ['@supabase/supabase-js', 'react', 'react-dom', 'lucide-react'],
+    include: ['@supabase/supabase-js', 'react', 'react-dom', 'lucide-react', 'lodash', 'lodash/get'],
     exclude: [
       'class-variance-authority',
       'react-hook-form',
