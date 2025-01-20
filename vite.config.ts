@@ -16,6 +16,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
   },
   build: {
@@ -65,9 +67,15 @@ export default defineConfig(({ mode }) => ({
       'react',
       '@supabase/auth-ui-shared'
     ],
-    include: ['@supabase/supabase-js']
+    include: ['@supabase/supabase-js'],
+    esbuildOptions: {
+      jsx: 'automatic'
+    }
   },
   define: {
     'process.env.NODE_ENV': JSON.stringify(mode)
+  },
+  esbuild: {
+    jsxInject: `import React from 'react'`
   }
 }));
