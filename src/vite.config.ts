@@ -10,8 +10,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -20,13 +19,22 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     sourcemap: mode === 'development',
+    outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['@radix-ui/react-dialog', '@radix-ui/react-slot'],
+          utils: ['@supabase/supabase-js', '@tanstack/react-query'],
         },
       },
     },
+    target: 'esnext',
+    minify: mode !== 'development',
+  },
+  preview: {
+    port: Number(process.env.PORT) || 8080,
+    host: true,
   },
 }));
