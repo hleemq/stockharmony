@@ -4,8 +4,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "start": "NODE_ENV=production vite preview"
-  }
-},
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.18.0",
     "@supabase/ssr": "^1.0.0",
