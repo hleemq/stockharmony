@@ -48,6 +48,7 @@ export default defineConfig(({ mode }) => ({
     }
   },
   optimizeDeps: {
+    include: ['@supabase/supabase-js', 'react', 'react-dom', 'lucide-react'],
     exclude: [
       'class-variance-authority',
       'react-hook-form',
@@ -57,17 +58,12 @@ export default defineConfig(({ mode }) => ({
       '@radix-ui/react-label',
       'react-router-dom',
       'jspdf',
-      'lucide-react',
       '@radix-ui/react-tabs',
-      '@supabase/supabase-js',
+      '@supabase/auth-ui-shared',
       '@radix-ui/react-alert-dialog',
       '@hookform/resolvers/zod',
-      'react-dom/client',
-      '@radix-ui/react-dialog',
-      'react',
-      '@supabase/auth-ui-shared'
+      '@radix-ui/react-dialog'
     ],
-    include: ['@supabase/supabase-js'],
     esbuildOptions: {
       jsx: 'automatic'
     }
