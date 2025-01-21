@@ -68,11 +68,11 @@ function App() {
 
   return (
     <Router>
-      <div className="flex min-h-[100dvh] flex-col bg-background safe-padding">
+      <div className="flex min-h-[100dvh] flex-col bg-background safe-padding overflow-hidden">
         <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
-        <div className="flex flex-1">
+        <div className="flex flex-1 relative">
           <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-          <main className="flex-1 content-padding pt-20 md:ml-64">
+          <main className="flex-1 content-padding pt-20 md:ml-64 overflow-auto h-[calc(100vh-5rem)]">
             <div className="table-container">
               <Routes>
                 <Route path="/" element={<DashboardPage />} />

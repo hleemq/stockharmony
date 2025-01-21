@@ -8,11 +8,13 @@ const OrdersPage = () => {
   const [showCreateOrder, setShowCreateOrder] = useState(false);
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="container mx-auto p-4 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Orders</h1>
-          <p className="text-muted-foreground">Manage your orders here</p>
+          <h1 className="text-2xl font-bold">Orders</h1>
+          <p className="text-muted-foreground">
+            Manage your orders here
+          </p>
         </div>
         <Button onClick={() => setShowCreateOrder(true)}>
           <Plus className="mr-2 h-4 w-4" />
