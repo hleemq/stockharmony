@@ -7,6 +7,7 @@ import { Order } from "@/types/order";
 import { useToast } from "@/hooks/use-toast";
 import { generateOrderPDF } from "@/utils/pdfGenerator";
 import EditOrderDialog from "./EditOrderDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function OrdersTable() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -67,6 +68,29 @@ export default function OrdersTable() {
     }
   };
 
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Order status updated successfully"
+      });
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handlePreviewClick = async (order: Order) => {
     try {
       const customerDetails = {
@@ -97,8 +121,6 @@ export default function OrdersTable() {
       })) || [];
 
       const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, order.order_number);
-
-      // Create a URL for the blob and trigger download
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -112,36 +134,6 @@ export default function OrdersTable() {
       toast({
         title: "Error",
         description: "Failed to generate PDF",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleEditClick = (order: Order) => {
-    setSelectedOrder(order);
-    setShowEditDialog(true);
-  };
-
-  const handleDeleteClick = async (order: Order) => {
-    if (!confirm('Are you sure you want to delete this order?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', order.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Order deleted successfully"
-      });
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete order",
         variant: "destructive"
       });
     }
@@ -166,7 +158,22 @@ export default function OrdersTable() {
               <TableCell>{order.order_number}</TableCell>
               <TableCell>{order.customers?.name}</TableCell>
               <TableCell>{new Date(order.order_date || order.created_at).toLocaleDateString()}</TableCell>
-              <TableCell className="capitalize">{order.status}</TableCell>
+              <TableCell>
+                <Select
+                  defaultValue={order.status}
+                  onValueChange={(value) => handleStatusChange(order.id, value)}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableCell>
               <TableCell>${order.total_amount.toFixed(2)}</TableCell>
               <TableCell>
                 <div className="flex gap-2">
@@ -181,19 +188,13 @@ export default function OrdersTable() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleEditClick(order)}
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setShowEditDialog(true);
+                    }}
                     title="Edit Order"
                   >
                     <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteClick(order)}
-                    title="Delete Order"
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>

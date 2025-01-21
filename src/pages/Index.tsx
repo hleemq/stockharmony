@@ -43,7 +43,7 @@ const Index = () => {
       
       if (revenueError) throw revenueError;
 
-      const revenue = revenueData.reduce((sum, order) => sum + order.total_amount, 0);
+      const revenue = revenueData.reduce((sum, order) => sum + Number(order.total_amount), 0);
 
       // Calculate previous month's revenue for growth comparison
       const sixtyDaysAgo = new Date();
@@ -56,19 +56,19 @@ const Index = () => {
         .gte("created_at", sixtyDaysAgo.toISOString())
         .lt("created_at", thirtyDaysAgo.toISOString());
 
-      const previousRevenue = previousRevenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+      const previousRevenue = previousRevenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
       const growth = previousRevenue ? ((revenue - previousRevenue) / previousRevenue * 100) : 0;
 
       // Prepare chart data
       const revenueByDay = revenueData.reduce((acc: Record<string, number>, order) => {
         const date = new Date(order.created_at).toISOString().split('T')[0];
-        acc[date] = (acc[date] || 0) + order.total_amount;
+        acc[date] = (acc[date] || 0) + Number(order.total_amount);
         return acc;
       }, {});
 
       const chartData = Object.entries(revenueByDay).map(([date, amount]) => ({
         date,
-        amount
+        amount: Number(amount)
       })).sort((a, b) => a.date.localeCompare(b.date));
 
       setDashboardData({
