@@ -31,13 +31,13 @@ const Index = () => {
       const totalStockValue = stockData.reduce((sum, item) => 
         sum + (item.total_quantity * (item.price * 1.3)), 0); // Assuming 30% markup
 
-      // Fetch revenue data for the last 30 days
+      // Fetch revenue data for completed orders only
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       const { data: revenueData, error: revenueError } = await supabase
         .from("orders")
-        .select("total_amount, created_at")
+        .select("total_amount, created_at, status")
         .eq("status", "completed")
         .gte("created_at", thirtyDaysAgo.toISOString());
       
@@ -59,7 +59,7 @@ const Index = () => {
       const previousRevenue = previousRevenueData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
       const growth = previousRevenue ? ((revenue - previousRevenue) / previousRevenue * 100) : 0;
 
-      // Prepare chart data
+      // Prepare chart data for completed orders only
       const revenueByDay = revenueData.reduce((acc: Record<string, number>, order) => {
         const date = new Date(order.created_at).toISOString().split('T')[0];
         acc[date] = (acc[date] || 0) + Number(order.total_amount);
@@ -98,7 +98,10 @@ const Index = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
-        () => fetchDashboardData()
+        (payload) => {
+          console.log('Order change detected:', payload);
+          fetchDashboardData();
+        }
       )
       .subscribe();
 
@@ -107,7 +110,10 @@ const Index = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'inventory_items' },
-        () => fetchDashboardData()
+        (payload) => {
+          console.log('Inventory change detected:', payload);
+          fetchDashboardData();
+        }
       )
       .subscribe();
 
