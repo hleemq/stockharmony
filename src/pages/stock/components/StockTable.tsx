@@ -1,12 +1,5 @@
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useEffect, useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Edit2, Search, Trash2 } from "lucide-react";
@@ -29,6 +22,44 @@ interface StockTableProps {
 export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: StockTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+
+  useEffect(() => {
+    // Subscribe to real-time updates for inventory changes
+    const channel = supabase
+      .channel('inventory-changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'inventory_items' 
+        },
+        (payload) => {
+          console.log('Inventory change received:', payload);
+          // Refresh the parent component's data
+          if (payload.eventType === 'UPDATE') {
+            const updatedItem = payload.new;
+            const existingItemIndex = items.findIndex(item => item.id === updatedItem.id);
+            if (existingItemIndex !== -1) {
+              const updatedItems = [...items];
+              updatedItems[existingItemIndex] = {
+                ...items[existingItemIndex],
+                stockAvailable: updatedItem.total_quantity
+              };
+              // Update the items through the parent component
+              if (onEdit) {
+                onEdit(updatedItems[existingItemIndex]);
+              }
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [items, onEdit]);
 
   const getStockStatus = (available: number) => {
     if (available <= 0) return "Out of Stock";

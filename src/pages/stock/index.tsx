@@ -27,6 +27,27 @@ export default function StockPage() {
     checkUser();
     fetchWarehouses();
     fetchStockItems();
+
+    // Subscribe to real-time updates for inventory changes
+    const channel = supabase
+      .channel('stock-updates')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'inventory_items' 
+        },
+        () => {
+          console.log('Stock update received, refreshing data...');
+          fetchStockItems();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const checkUser = async () => {
