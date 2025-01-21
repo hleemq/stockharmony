@@ -14,16 +14,21 @@ import { StockItem } from "@/types/stock";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface StockTableProps {
   items: StockItem[];
   isLoading?: boolean;
   onEdit?: (item: StockItem) => void;
   onDelete?: (item: StockItem) => void;
+  warehouses: { id: string; name: string; location: string; }[];
 }
 
-export function StockTable({ items, isLoading, onEdit, onDelete }: StockTableProps) {
+export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: StockTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
 
   const getStockStatus = (available: number) => {
     if (available <= 0) return "Out of Stock";
@@ -33,7 +38,6 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
 
   const handleDelete = async (item: StockItem) => {
     try {
-      // First, get the inventory item ID using the SKU
       const { data: inventoryItem, error: fetchError } = await supabase
         .from('inventory_items')
         .select('id')
@@ -51,7 +55,6 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
         return;
       }
 
-      // Delete related analytics records first
       const { error: analyticsError } = await supabase
         .from('inventory_analytics')
         .delete()
@@ -63,7 +66,6 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
         return;
       }
 
-      // Delete related order items
       const { error: orderItemsError } = await supabase
         .from('order_items')
         .delete()
@@ -75,7 +77,6 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
         return;
       }
 
-      // Finally delete the inventory item
       const { error: deleteError } = await supabase
         .from('inventory_items')
         .delete()
@@ -96,7 +97,14 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
   };
 
   const handleEdit = (item: StockItem) => {
-    if (onEdit) onEdit(item);
+    setEditingItem(item);
+  };
+
+  const handleSaveEdit = async (updatedItem: StockItem) => {
+    if (onEdit) {
+      onEdit(updatedItem);
+      setEditingItem(null);
+    }
   };
 
   // Filter items based on search query
@@ -218,6 +226,99 @@ export function StockTable({ items, isLoading, onEdit, onDelete }: StockTablePro
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Stock Item</DialogTitle>
+          </DialogHeader>
+          {editingItem && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveEdit(editingItem);
+            }} className="space-y-4">
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="productName">Product Name</Label>
+                  <Input
+                    id="productName"
+                    value={editingItem.productName}
+                    onChange={(e) => setEditingItem({...editingItem, productName: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="boxes">Boxes</Label>
+                  <Input
+                    id="boxes"
+                    type="number"
+                    value={editingItem.boxes}
+                    onChange={(e) => setEditingItem({...editingItem, boxes: parseInt(e.target.value)})}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="unitsPerBox">Units Per Box</Label>
+                  <Input
+                    id="unitsPerBox"
+                    type="number"
+                    value={editingItem.unitsPerBox}
+                    onChange={(e) => setEditingItem({...editingItem, unitsPerBox: parseInt(e.target.value)})}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="boughtPrice">Bought Price</Label>
+                  <Input
+                    id="boughtPrice"
+                    type="number"
+                    step="0.01"
+                    value={editingItem.boughtPrice}
+                    onChange={(e) => setEditingItem({...editingItem, boughtPrice: parseFloat(e.target.value)})}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="sellingPrice">Selling Price</Label>
+                  <Input
+                    id="sellingPrice"
+                    type="number"
+                    step="0.01"
+                    value={editingItem.sellingPrice}
+                    onChange={(e) => setEditingItem({...editingItem, sellingPrice: parseFloat(e.target.value)})}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="location">Warehouse</Label>
+                  <Select 
+                    value={editingItem.location} 
+                    onValueChange={(value) => setEditingItem({...editingItem, location: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select warehouse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((warehouse) => (
+                        <SelectItem key={warehouse.id} value={warehouse.name}>
+                          {warehouse.name} ({warehouse.location})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

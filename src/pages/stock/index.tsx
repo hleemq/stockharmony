@@ -237,6 +237,7 @@ export default function StockPage() {
             isLoading={isLoading} 
             onEdit={handleEditItem}
             onDelete={handleDeleteItem}
+            warehouses={warehouses}
           />
         </TabsContent>
         <TabsContent value="warehouses">
