@@ -154,6 +154,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Image</TableHead>
                 <TableHead>Stock Code</TableHead>
                 <TableHead>Product Name</TableHead>
                 <TableHead>Boxes</TableHead>
@@ -169,7 +170,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
             <TableBody>
               {[...Array(5)].map((_, index) => (
                 <TableRow key={index}>
-                  {[...Array(10)].map((_, cellIndex) => (
+                  {[...Array(11)].map((_, cellIndex) => (
                     <TableCell key={cellIndex}>
                       <Skeleton className="h-4 w-[100px]" />
                     </TableCell>
@@ -198,6 +199,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Image</TableHead>
               <TableHead>Stock Code</TableHead>
               <TableHead>Product Name</TableHead>
               <TableHead>Boxes</TableHead>
@@ -213,6 +215,19 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
           <TableBody>
             {filteredItems.map((item) => (
               <TableRow key={item.stockCode}>
+                <TableCell>
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.productName}
+                      className="w-12 h-12 object-cover rounded-md"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center">
+                      <Image className="w-6 h-6 text-gray-400" />
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="font-medium">{item.stockCode}</TableCell>
                 <TableCell>{item.productName}</TableCell>
                 <TableCell>{item.boxes}</TableCell>
