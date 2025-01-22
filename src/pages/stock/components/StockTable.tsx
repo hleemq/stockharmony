@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Edit2, Search, Trash2 } from "lucide-react";
+import { Edit2, Trash2 } from "lucide-react";
 import { StockItem } from "@/types/stock";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
+import { SearchBar } from "./SearchBar";
+import { StockItemImage } from "./StockItemImage";
+import { StockStatus } from "./StockStatus";
+import { EditStockDialog } from "./EditStockDialog";
 
 interface StockTableProps {
   items: StockItem[];
@@ -22,50 +22,6 @@ interface StockTableProps {
 export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: StockTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
-
-  useEffect(() => {
-    // Subscribe to real-time updates for inventory changes
-    const channel = supabase
-      .channel('inventory-changes')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'inventory_items' 
-        },
-        (payload) => {
-          console.log('Inventory change received:', payload);
-          // Refresh the parent component's data
-          if (payload.eventType === 'UPDATE') {
-            const updatedItem = payload.new;
-            const existingItemIndex = items.findIndex(item => item.id === updatedItem.id);
-            if (existingItemIndex !== -1) {
-              const updatedItems = [...items];
-              updatedItems[existingItemIndex] = {
-                ...items[existingItemIndex],
-                stockAvailable: updatedItem.total_quantity
-              };
-              // Update the items through the parent component
-              if (onEdit) {
-                onEdit(updatedItems[existingItemIndex]);
-              }
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [items, onEdit]);
-
-  const getStockStatus = (available: number) => {
-    if (available <= 0) return "Out of Stock";
-    if (available < 10) return "Low Stock";
-    return "In Stock";
-  };
 
   const handleDelete = async (item: StockItem) => {
     try {
@@ -147,9 +103,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="relative">
-          <Skeleton className="h-10 w-full md:max-w-sm" />
-        </div>
+        <SearchBar value={searchQuery} onChange={setSearchQuery} />
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -186,15 +140,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
 
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search items..."
-          className="pl-10 w-full md:max-w-sm"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+      <SearchBar value={searchQuery} onChange={setSearchQuery} />
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
@@ -216,17 +162,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
             {filteredItems.map((item) => (
               <TableRow key={item.stockCode}>
                 <TableCell>
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.productName}
-                      className="w-12 h-12 object-cover rounded-md"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center">
-                      <Image className="w-6 h-6 text-gray-400" />
-                    </div>
-                  )}
+                  <StockItemImage imageUrl={item.imageUrl} productName={item.productName} />
                 </TableCell>
                 <TableCell className="font-medium">{item.stockCode}</TableCell>
                 <TableCell>{item.productName}</TableCell>
@@ -236,15 +172,7 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
                 <TableCell>${item.sellingPrice.toFixed(2)}</TableCell>
                 <TableCell>{item.location}</TableCell>
                 <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    item.stockAvailable <= 0 
-                      ? 'bg-red-100 text-red-800' 
-                      : item.stockAvailable < 10 
-                        ? 'bg-yellow-100 text-yellow-800' 
-                        : 'bg-green-100 text-green-800'
-                  }`}>
-                    {getStockStatus(item.stockAvailable)}
-                  </span>
+                  <StockStatus available={item.stockAvailable} />
                 </TableCell>
                 <TableCell>{item.stockAvailable}</TableCell>
                 <TableCell>
@@ -273,98 +201,12 @@ export function StockTable({ items, isLoading, onEdit, onDelete, warehouses }: S
         </Table>
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Stock Item</DialogTitle>
-          </DialogHeader>
-          {editingItem && (
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              handleSaveEdit(editingItem);
-            }} className="space-y-4">
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="productName">Product Name</Label>
-                  <Input
-                    id="productName"
-                    value={editingItem.productName}
-                    onChange={(e) => setEditingItem({...editingItem, productName: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="boxes">Boxes</Label>
-                  <Input
-                    id="boxes"
-                    type="number"
-                    value={editingItem.boxes}
-                    onChange={(e) => setEditingItem({...editingItem, boxes: parseInt(e.target.value)})}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="unitsPerBox">Units Per Box</Label>
-                  <Input
-                    id="unitsPerBox"
-                    type="number"
-                    value={editingItem.unitsPerBox}
-                    onChange={(e) => setEditingItem({...editingItem, unitsPerBox: parseInt(e.target.value)})}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="boughtPrice">Bought Price</Label>
-                  <Input
-                    id="boughtPrice"
-                    type="number"
-                    step="0.01"
-                    value={editingItem.boughtPrice}
-                    onChange={(e) => setEditingItem({...editingItem, boughtPrice: parseFloat(e.target.value)})}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="sellingPrice">Selling Price</Label>
-                  <Input
-                    id="sellingPrice"
-                    type="number"
-                    step="0.01"
-                    value={editingItem.sellingPrice}
-                    onChange={(e) => setEditingItem({...editingItem, sellingPrice: parseFloat(e.target.value)})}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="location">Warehouse</Label>
-                  <Select 
-                    value={editingItem.location} 
-                    onValueChange={(value) => setEditingItem({...editingItem, location: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select warehouse" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {warehouses.map((warehouse) => (
-                        <SelectItem key={warehouse.id} value={warehouse.name}>
-                          {warehouse.name} ({warehouse.location})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Save Changes</Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EditStockDialog 
+        item={editingItem}
+        onClose={() => setEditingItem(null)}
+        onSave={handleSaveEdit}
+        warehouses={warehouses}
+      />
     </div>
   );
 }

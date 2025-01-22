@@ -24,9 +24,18 @@ export default function StockPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkUser();
-    fetchWarehouses();
-    fetchStockItems();
+    const checkSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session) {
+        toast.error("Please login to access this page");
+        navigate("/login");
+        return;
+      }
+      fetchWarehouses();
+      fetchStockItems();
+    };
+
+    checkSession();
 
     // Subscribe to real-time updates for inventory changes
     const channel = supabase
@@ -48,16 +57,7 @@ export default function StockPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      toast.error("Please login to access this page");
-      navigate("/login");
-      return;
-    }
-  };
+  }, [navigate]);
 
   const fetchWarehouses = async () => {
     try {

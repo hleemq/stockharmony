@@ -208,7 +208,6 @@ export type Database = {
         Row: {
           barcode: string | null
           box_count: number | null
-          category: Database["public"]["Enums"]["item_category"]
           created_at: string | null
           description: string | null
           group_id: string | null
@@ -225,7 +224,6 @@ export type Database = {
           quantity_per_unit: number
           reorder_point: number | null
           shipment_fees: number
-          size: string
           sku: string
           status: Database["public"]["Enums"]["inventory_status"]
           total_quantity: number
@@ -237,7 +235,6 @@ export type Database = {
         Insert: {
           barcode?: string | null
           box_count?: number | null
-          category: Database["public"]["Enums"]["item_category"]
           created_at?: string | null
           description?: string | null
           group_id?: string | null
@@ -254,7 +251,6 @@ export type Database = {
           quantity_per_unit?: number
           reorder_point?: number | null
           shipment_fees?: number
-          size: string
           sku: string
           status?: Database["public"]["Enums"]["inventory_status"]
           total_quantity?: number
@@ -266,7 +262,6 @@ export type Database = {
         Update: {
           barcode?: string | null
           box_count?: number | null
-          category?: Database["public"]["Enums"]["item_category"]
           created_at?: string | null
           description?: string | null
           group_id?: string | null
@@ -283,7 +278,6 @@ export type Database = {
           quantity_per_unit?: number
           reorder_point?: number | null
           shipment_fees?: number
-          size?: string
           sku?: string
           status?: Database["public"]["Enums"]["inventory_status"]
           total_quantity?: number
@@ -360,35 +354,6 @@ export type Database = {
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      item_tags: {
-        Row: {
-          created_at: string | null
-          id: string
-          item_id: string | null
-          tag_name: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          item_id?: string | null
-          tag_name: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          item_id?: string | null
-          tag_name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "item_tags_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]
