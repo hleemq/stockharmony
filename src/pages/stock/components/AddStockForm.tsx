@@ -41,12 +41,12 @@ export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockF
 
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedImage(file);
-      // Create a preview URL
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
     }
@@ -60,9 +60,13 @@ export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockF
 
       const { error: uploadError } = await supabase.storage
         .from('inventory_images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: false
+        });
 
       if (uploadError) {
+        console.error('Error uploading image:', uploadError);
         throw uploadError;
       }
 
@@ -80,27 +84,56 @@ export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockF
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    let imageUrl = null;
-    if (selectedImage) {
-      imageUrl = await uploadImage(selectedImage);
-    }
+    setIsSubmitting(true);
 
-    // Calculate initial price based on bought price and shipment fees
-    const updatedFormData = {
-      ...formData,
-      initialPrice: formData.boughtPrice + formData.shipmentFees,
-      stockAvailable: formData.boxes * formData.unitsPerBox, // Set initial stock based on boxes and units
-      imageUrl: imageUrl || undefined
-    };
-    onAddItem(updatedFormData);
-    
-    // Clean up the preview URL
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
+    try {
+      let imageUrl = null;
+      if (selectedImage) {
+        imageUrl = await uploadImage(selectedImage);
+        if (!imageUrl) {
+          toast.error('Failed to upload image');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      const updatedFormData = {
+        ...formData,
+        initialPrice: formData.boughtPrice + formData.shipmentFees,
+        stockAvailable: formData.boxes * formData.unitsPerBox,
+        imageUrl
+      };
+
+      await onAddItem(updatedFormData);
+      
+      // Clean up the preview URL
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      setSelectedImage(null);
+      setImagePreview(null);
+      setFormData({
+        id: '',
+        stockCode: "",
+        productName: "",
+        boxes: 0,
+        unitsPerBox: 0,
+        shipmentFees: 0,
+        boughtPrice: 0,
+        initialPrice: 0,
+        sellingPrice: 0,
+        price: 0,
+        location: "",
+        stockAvailable: 0,
+        quantity_per_box: 1
+      });
+      onClose();
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error('Failed to add item');
+    } finally {
+      setIsSubmitting(false);
     }
-    setSelectedImage(null);
-    setImagePreview(null);
   };
 
   const handleChange = (field: keyof StockItem, value: string | number) => {
@@ -255,7 +288,9 @@ export function AddStockForm({ open, onClose, onAddItem, warehouses }: AddStockF
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Add Item</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding Item...' : 'Add Item'}
+            </Button>
           </div>
         </form>
       </DialogContent>
