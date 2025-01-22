@@ -531,13 +531,6 @@ export type Database = {
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "orders_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
         ]
       }
       products: {
@@ -607,39 +600,6 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      suppliers: {
-        Row: {
-          address: string | null
-          contact_person: string | null
-          created_at: string | null
-          email: string | null
-          id: string
-          name: string
-          phone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          address?: string | null
-          contact_person?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          name: string
-          phone?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          address?: string | null
-          contact_person?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          name?: string
-          phone?: string | null
           updated_at?: string | null
         }
         Relationships: []
