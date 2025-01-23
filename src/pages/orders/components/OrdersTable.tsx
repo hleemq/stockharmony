@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateOrderPDF } from "@/utils/pdfGenerator";
 import EditOrderDialog from "./EditOrderDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 export default function OrdersTable() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -91,6 +92,32 @@ export default function OrdersTable() {
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Order deleted successfully"
+      });
+      
+      // Fetch orders again to update the list
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete order",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handlePreviewClick = async (order: Order) => {
     try {
       const customerDetails = {
@@ -139,6 +166,21 @@ export default function OrdersTable() {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -149,13 +191,13 @@ export default function OrdersTable() {
             <TableHead>Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Total Amount</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {orders.map((order) => (
-            <TableRow key={order.id}>
-              <TableCell>{order.order_number}</TableCell>
+            <TableRow key={order.id} className="hover:bg-gray-50">
+              <TableCell className="font-medium">{order.order_number}</TableCell>
               <TableCell>{order.customers?.name}</TableCell>
               <TableCell>{new Date(order.order_date || order.created_at).toLocaleDateString()}</TableCell>
               <TableCell>
@@ -164,7 +206,11 @@ export default function OrdersTable() {
                   onValueChange={(value) => handleStatusChange(order.id, value)}
                 >
                   <SelectTrigger className="w-32">
-                    <SelectValue />
+                    <SelectValue>
+                      <Badge className={getStatusColor(order.status)}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </Badge>
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
@@ -174,9 +220,9 @@ export default function OrdersTable() {
                   </SelectContent>
                 </Select>
               </TableCell>
-              <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+              <TableCell>{order.total_amount.toLocaleString('fr-MA', { style: 'currency', currency: 'MAD' })}</TableCell>
               <TableCell>
-                <div className="flex gap-2">
+                <div className="flex justify-end gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -195,6 +241,15 @@ export default function OrdersTable() {
                     title="Edit Order"
                   >
                     <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteOrder(order.id)}
+                    className="text-red-500 hover:text-red-700"
+                    title="Delete Order"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
