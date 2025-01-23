@@ -16,7 +16,7 @@ export interface Order {
   id: string;
   order_number: string;
   customer_id: string | null;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  status: 'pending' | 'completed';
   total_amount: number;
   created_at: string;
   updated_at: string | null;

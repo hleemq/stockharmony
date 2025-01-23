@@ -19,7 +19,6 @@ export default function OrdersTable() {
   useEffect(() => {
     fetchOrders();
     
-    // Subscribe to real-time updates
     const channel = supabase
       .channel('orders-changes')
       .on(
@@ -69,7 +68,7 @@ export default function OrdersTable() {
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
+  const handleStatusChange = async (orderId: string, newStatus: 'pending' | 'completed') => {
     try {
       const { error } = await supabase
         .from('orders')
@@ -106,7 +105,6 @@ export default function OrdersTable() {
         description: "Order deleted successfully"
       });
       
-      // Fetch orders again to update the list
       fetchOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
@@ -167,18 +165,9 @@ export default function OrdersTable() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800';
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    return status === 'completed' 
+      ? 'bg-green-100 text-green-800'
+      : 'bg-yellow-100 text-yellow-800';
   };
 
   return (
@@ -203,7 +192,7 @@ export default function OrdersTable() {
               <TableCell>
                 <Select
                   defaultValue={order.status}
-                  onValueChange={(value) => handleStatusChange(order.id, value)}
+                  onValueChange={(value) => handleStatusChange(order.id, value as 'pending' | 'completed')}
                 >
                   <SelectTrigger className="w-32">
                     <SelectValue>
@@ -214,9 +203,7 @@ export default function OrdersTable() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="processing">Processing</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </TableCell>

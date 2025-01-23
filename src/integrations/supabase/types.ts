@@ -429,7 +429,7 @@ export type Database = {
           order_date: string | null
           order_number: string
           pdf_url: string | null
-          status: Database["public"]["Enums"]["order_status"]
+          status: string
           supplier_id: string | null
           total_amount: number
           total_pre_tax: number | null
@@ -447,7 +447,7 @@ export type Database = {
           order_date?: string | null
           order_number: string
           pdf_url?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
+          status?: string
           supplier_id?: string | null
           total_amount?: number
           total_pre_tax?: number | null
@@ -465,7 +465,7 @@ export type Database = {
           order_date?: string | null
           order_number?: string
           pdf_url?: string | null
-          status?: Database["public"]["Enums"]["order_status"]
+          status?: string
           supplier_id?: string | null
           total_amount?: number
           total_pre_tax?: number | null
