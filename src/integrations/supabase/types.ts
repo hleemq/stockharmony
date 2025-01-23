@@ -187,6 +187,7 @@ export type Database = {
         Row: {
           barcode: string | null
           box_count: number | null
+          category: string | null
           created_at: string | null
           description: string | null
           group_id: string | null
@@ -203,6 +204,7 @@ export type Database = {
           quantity_per_unit: number
           reorder_point: number | null
           shipment_fees: number
+          size: string | null
           sku: string
           status: Database["public"]["Enums"]["inventory_status"]
           total_quantity: number
@@ -214,6 +216,7 @@ export type Database = {
         Insert: {
           barcode?: string | null
           box_count?: number | null
+          category?: string | null
           created_at?: string | null
           description?: string | null
           group_id?: string | null
@@ -230,6 +233,7 @@ export type Database = {
           quantity_per_unit?: number
           reorder_point?: number | null
           shipment_fees?: number
+          size?: string | null
           sku: string
           status?: Database["public"]["Enums"]["inventory_status"]
           total_quantity?: number
@@ -241,6 +245,7 @@ export type Database = {
         Update: {
           barcode?: string | null
           box_count?: number | null
+          category?: string | null
           created_at?: string | null
           description?: string | null
           group_id?: string | null
@@ -257,6 +262,7 @@ export type Database = {
           quantity_per_unit?: number
           reorder_point?: number | null
           shipment_fees?: number
+          size?: string | null
           sku?: string
           status?: Database["public"]["Enums"]["inventory_status"]
           total_quantity?: number
