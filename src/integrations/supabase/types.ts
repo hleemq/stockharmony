@@ -626,7 +626,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_safe_schema_name: {
+        Args: {
+          user_id: string
+        }
+        Returns: string
+      }
+      get_user_schema: {
+        Args: {
+          user_id: string
+        }
+        Returns: string
+      }
+      setup_initial_shared_schema: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "user"
