@@ -15,10 +15,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_safe_schema_name: {
+        Args: {
+          user_id: string
+        }
+        Returns: string
+      }
+      get_user_schema: {
+        Args: {
+          user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "manager" | "user"
+      inventory_status: "in_stock" | "low_stock" | "out_of_stock"
+      item_category: "homme" | "femme" | "enfant" | "bebe"
+      order_status: "pending" | "processing" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
