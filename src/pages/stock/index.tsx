@@ -169,6 +169,7 @@ export default function StockPage() {
           total_quantity: newItem.stockAvailable,
           size: 'default',
           category: 'homme',
+          status: newItem.stockAvailable > 0 ? 'in_stock' : 'out_of_stock'
         }])
         .select()
         .single();
