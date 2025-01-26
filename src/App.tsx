@@ -19,64 +19,31 @@ function App() {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // Enable real-time subscriptions
-    supabase.realtime.setAuth(session?.access_token || null);
-
-    // Check active session and enable session persistence
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsLoading(false);
     });
 
-    // Listen for auth changes with enhanced error handling
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.expires_at) {
-        // Calculate time until token expires (in seconds)
-        const expiresIn = session.expires_at - Math.floor(Date.now() / 1000);
-        
-        // If token expires in less than 1 hour, refresh it
-        if (expiresIn < 3600) {
-          const { data, error } = await supabase.auth.refreshSession();
-          if (error) {
-            console.error('Error refreshing session:', error);
-            toast.error("Session refresh failed. Please log in again.");
-          } else if (data.session) {
-            setSession(data.session);
-          }
-        } else {
-          setSession(session);
-        }
-      } else {
-        setSession(session);
-      }
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setIsLoading(false);
     });
 
     // Handle device orientation changes
     const handleOrientationChange = () => {
       window.dispatchEvent(new Event('resize'));
     };
-
     window.addEventListener('orientationchange', handleOrientationChange);
-
-    // Set up periodic session refresh (every 30 minutes)
-    const refreshInterval = setInterval(async () => {
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error) {
-        console.error('Error in periodic session refresh:', error);
-      } else if (data.session) {
-        setSession(data.session);
-      }
-    }, 30 * 60 * 1000); // 30 minutes
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('orientationchange', handleOrientationChange);
-      clearInterval(refreshInterval);
     };
   }, []);
 
+  // Show loading spinner while checking auth status
   if (isLoading) {
     return (
       <div className="flex h-[100dvh] items-center justify-center bg-background">
@@ -85,6 +52,7 @@ function App() {
     );
   }
 
+  // If no session, show login page
   if (!session) {
     return (
       <Router>
@@ -98,6 +66,7 @@ function App() {
     );
   }
 
+  // If session exists, show main app layout
   return (
     <Router>
       <div className="flex min-h-[100dvh] flex-col bg-background safe-padding overflow-hidden">
