@@ -59,6 +59,26 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
     setSelectedProducts(selectedProducts.filter((p) => p.stockCode !== stockCode));
   };
 
+  const findExistingCustomer = async (name: string, email?: string) => {
+    let query = supabase
+      .from('customers')
+      .select('*')
+      .eq('name', name);
+    
+    if (email) {
+      query = query.or(`email.eq.${email}`);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    
+    if (error) {
+      console.error('Error finding customer:', error);
+      return null;
+    }
+
+    return data;
+  };
+
   const onSubmit = async (data: CustomerFormValues) => {
     if (selectedProducts.length === 0) {
       toast({
@@ -71,19 +91,40 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
     setIsSubmitting(true);
     try {
-      // First, create the customer
-      const { data: customerData, error: customerError } = await supabase
-        .from("customers")
-        .insert({
-          name: data.name,
-          email: data.email || null,
-          phone: data.phone || null,
-          address: data.address || null
-        })
-        .select()
-        .single();
+      // Check for existing customer
+      const existingCustomer = await findExistingCustomer(data.name, data.email || undefined);
+      
+      let customerId;
+      if (existingCustomer) {
+        // Update existing customer
+        const { error: updateError } = await supabase
+          .from('customers')
+          .update({
+            email: data.email || null,
+            phone: data.phone || null,
+            address: data.address || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingCustomer.id);
 
-      if (customerError) throw customerError;
+        if (updateError) throw updateError;
+        customerId = existingCustomer.id;
+      } else {
+        // Create new customer
+        const { data: newCustomer, error: customerError } = await supabase
+          .from("customers")
+          .insert({
+            name: data.name,
+            email: data.email || null,
+            phone: data.phone || null,
+            address: data.address || null
+          })
+          .select()
+          .single();
+
+        if (customerError) throw customerError;
+        customerId = newCustomer.id;
+      }
 
       const orderNumber = generateOrderNumber();
       const totalAmount = selectedProducts.reduce((sum, product) => {
@@ -108,11 +149,9 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
       console.log('Generating PDF...');
       try {
-        // Generate the PDF
         const pdfBlob = await generateOrderPDF(customerDetails, productsWithBoxes, orderNumber);
         console.log('PDF generated successfully');
 
-        // First check if the file already exists and delete it if it does
         const { data: existingFile, error: checkError } = await supabase.storage
           .from('order_documents')
           .list('', {
@@ -135,13 +174,11 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
           }
         }
 
-        // Create a File object from the Blob with proper MIME type
         const pdfFile = new File([pdfBlob], `${orderNumber}.pdf`, { 
           type: 'application/pdf'
         });
 
         console.log('Uploading PDF to Supabase storage...');
-        // Upload PDF to storage with explicit content type
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('order_documents')
           .upload(`${orderNumber}.pdf`, pdfFile, {
@@ -155,18 +192,16 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
         }
         console.log('PDF uploaded successfully');
 
-        // Get the public URL for the uploaded file
         const { data: { publicUrl } } = supabase.storage
           .from('order_documents')
           .getPublicUrl(`${orderNumber}.pdf`);
 
         console.log('Creating order in database...');
-        // Create order with PDF URL
         const { data: orderData, error: orderError } = await supabase
           .from("orders")
           .insert({
             order_number: orderNumber,
-            customer_id: customerData.id,
+            customer_id: customerId,
             total_amount: totalAmount,
             status: "pending",
             pdf_url: publicUrl
@@ -176,7 +211,6 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
 
         if (orderError) throw orderError;
 
-        // Create order items
         const orderItems = selectedProducts.map(product => ({
           order_id: orderData.id,
           item_id: product.id,
@@ -202,7 +236,6 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
           description: "Order created successfully",
         });
 
-        // Reset form and close dialog
         form.reset();
         setSelectedProducts([]);
         onClose();
@@ -304,14 +337,12 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
                 />
               </div>
 
-              {/* Search Results */}
               <ProductSearchResults
                 searchQuery={searchQuery}
                 onAddToOrder={handleAddToOrder}
                 selectedProducts={selectedProducts}
               />
 
-              {/* Order Summary */}
               {selectedProducts.length > 0 && (
                 <OrderSummary
                   products={selectedProducts}
@@ -325,12 +356,9 @@ export default function CreateOrderDialog({ open, onClose }: CreateOrderDialogPr
                 />
               )}
 
-              {/* Submit Button */}
-              {selectedProducts.length > 0 && (
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Creating Order..." : "Create Order"}
-                </Button>
-              )}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Creating Order..." : "Create Order"}
+              </Button>
             </div>
           </form>
         </Form>
