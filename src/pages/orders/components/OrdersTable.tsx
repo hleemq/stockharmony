@@ -93,12 +93,21 @@ export default function OrdersTable() {
 
   const handleDeleteOrder = async (orderId: string) => {
     try {
-      const { error } = await supabase
+      // First, delete all associated order items
+      const { error: orderItemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (orderItemsError) throw orderItemsError;
+
+      // Then, delete the order itself
+      const { error: orderError } = await supabase
         .from('orders')
         .delete()
         .eq('id', orderId);
 
-      if (error) throw error;
+      if (orderError) throw orderError;
 
       toast({
         title: "Success",
