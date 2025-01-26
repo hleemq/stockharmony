@@ -11,7 +11,15 @@ export const supabase = createClient<Database>(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storage: localStorage,
+      storageKey: 'stockharmony_auth',
+      flowType: 'pkce'
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
     },
     global: {
       headers: {
@@ -20,3 +28,14 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Enable real-time subscriptions for all tables
+supabase.channel('schema-db-changes')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public' },
+    (payload) => {
+      console.log('Database change received:', payload);
+    }
+  )
+  .subscribe();
